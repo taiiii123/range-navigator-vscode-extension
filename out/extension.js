@@ -60,54 +60,57 @@ class RangeNavigatorProvider {
     }
 }
 class TextOccurrence extends vscode.TreeItem {
-    label;
-    contextLine;
+    searchText;
+    lineText;
     lineNumber;
+    startIndex;
     position;
     command;
-    constructor(label, contextLine, lineNumber, position, command) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.label = label;
-        this.contextLine = contextLine;
+    constructor(searchText, lineText, lineNumber, startIndex, position, command) {
+        super("", vscode.TreeItemCollapsibleState.None);
+        this.searchText = searchText;
+        this.lineText = lineText;
         this.lineNumber = lineNumber;
+        this.startIndex = startIndex;
         this.position = position;
         this.command = command;
-        // 行番号と周辺のテキストを表示
+        // ハイライト表示のためのラベルとHTMLを設定
         this.description = `Line ${lineNumber + 1}`;
-        this.tooltip = contextLine.trim();
+        // サイドバーアイテムの表示をカスタマイズ
+        // 1. 行番号を表示
+        // 2. ハイライトされた部分の前後のテキストを表示
+        // 3. サンプルテキストの表示範囲を設定
+        // テキストの切り出しサイズを調整
+        const contextBefore = 20;
+        const contextAfter = 30;
+        const startPos = Math.max(0, startIndex - contextBefore);
+        const textBefore = lineText.substring(startPos, startIndex);
+        const highlightedText = lineText.substring(startIndex, startIndex + searchText.length);
+        const textAfter = lineText.substring(startIndex + searchText.length, startIndex + searchText.length + contextAfter);
+        // ラベルをリッチテキストとして設定
+        this.label = this.createLabel(textBefore, highlightedText, textAfter);
+        // ツールチップにはフルラインテキストを表示
+        this.tooltip = lineText.trim();
+    }
+    createLabel(before, highlight, after) {
+        // 実際のVSCodeツリービューでは完全なHTMLは使えないので
+        // ここではシンプルな表現で対応
+        return `${before}${highlight}${after}`;
     }
 }
 function activate(context) {
     console.log('Activating Range Navigator extension');
     // プロバイダーを登録
     const rangeNavigatorProvider = new RangeNavigatorProvider(context);
-    // ツリービューを作成し、表示状態を追跡するための変数
+    // ツリービューを作成
     let treeView = vscode.window.createTreeView('rangeNavigatorView', {
         treeDataProvider: rangeNavigatorProvider,
         showCollapseAll: true
     });
-    // この変数を使ってサイドバーが表示されているかどうかを追跡
-    let isTreeViewVisible = false;
-    // TreeViewの可視性が変更されたときに発生するイベント
-    context.subscriptions.push(treeView.onDidChangeVisibility(event => {
-        isTreeViewVisible = event.visible;
-        console.log(`Tree view visibility changed to: ${isTreeViewVisible}`);
-        // サイドバーが表示されたときに現在の選択を使って検索
-        if (isTreeViewVisible) {
-            const editor = vscode.window.activeTextEditor;
-            if (editor && !editor.selection.isEmpty) {
-                const selectedText = editor.document.getText(editor.selection);
-                findOccurrences(editor, selectedText, rangeNavigatorProvider);
-            }
-        }
-    }));
     // テキスト選択が変更されたときの処理
     context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
-        // ログを追加して状態を確認
-        console.log(`Selection changed, treeView visible: ${treeView.visible}`);
         // サイドバーが表示されていない場合は何もしない
         if (!treeView.visible) {
-            console.log('Tree view is not visible, skipping search');
             return;
         }
         const editor = event.textEditor;
@@ -123,15 +126,23 @@ function activate(context) {
         }
         else {
             // 選択がない場合はリストをクリア
-            console.log('No selection, clearing results');
             rangeNavigatorProvider.refresh([]);
+        }
+    }));
+    // サイドバーが表示状態になったときのイベント
+    context.subscriptions.push(treeView.onDidChangeVisibility(event => {
+        if (event.visible) {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && !editor.selection.isEmpty) {
+                const selectedText = editor.document.getText(editor.selection);
+                findOccurrences(editor, selectedText, rangeNavigatorProvider);
+            }
         }
     }));
     // エディタが変更されたときの処理
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
         // アクティブなエディタが変更され、サイドバーが表示されている場合
         if (editor && treeView.visible) {
-            console.log('Editor changed, checking for selection');
             if (!editor.selection.isEmpty) {
                 const selectedText = editor.document.getText(editor.selection);
                 findOccurrences(editor, selectedText, rangeNavigatorProvider);
@@ -142,24 +153,10 @@ function activate(context) {
             }
         }
     }));
-    // ViewContainer が表示されたときのイベント (これはAPIで直接サポートされていないため、代替方法を使用)
-    let viewStateChangeDisposable = vscode.window.onDidChangeWindowState(() => {
-        // ウィンドウの状態が変更されたときにツリービューの可視性を確認
-        if (treeView.visible) {
-            const editor = vscode.window.activeTextEditor;
-            if (editor && !editor.selection.isEmpty) {
-                const selectedText = editor.document.getText(editor.selection);
-                findOccurrences(editor, selectedText, rangeNavigatorProvider);
-            }
-        }
-    });
-    context.subscriptions.push(viewStateChangeDisposable);
     context.subscriptions.push(treeView);
 }
 // 指定されたテキストの出現箇所をすべて検索する
 async function findOccurrences(editor, searchText, provider) {
-    // 検索開始のログ
-    console.log(`Finding occurrences of: "${searchText}"`);
     const document = editor.document;
     const results = [];
     // 選択されたテキストが空または空白のみの場合、結果をクリアして終了
@@ -181,12 +178,6 @@ async function findOccurrences(editor, searchText, provider) {
                 while ((match = lineRegex.exec(lineText)) !== null) {
                     const startPos = new vscode.Position(i, match.index);
                     const endPos = new vscode.Position(i, match.index + searchText.length);
-                    // 結果ラベルを作成
-                    const labelText = `${searchText} (${i + 1}:${match.index + 1})`;
-                    // 行のコンテキストを含む (周辺テキストを表示)
-                    const contextStart = Math.max(0, match.index - 20);
-                    const contextEnd = Math.min(lineText.length, match.index + searchText.length + 20);
-                    const contextLine = lineText.substring(contextStart, contextEnd);
                     // クリックしたらその位置に移動するコマンドを追加
                     const command = {
                         title: 'Go to Occurrence',
@@ -199,12 +190,11 @@ async function findOccurrences(editor, searchText, provider) {
                             }
                         ]
                     };
-                    results.push(new TextOccurrence(labelText, contextLine, i, startPos, command));
+                    results.push(new TextOccurrence(searchText, lineText, i, match.index, startPos, command));
                 }
             }
         }
         // 検索結果をプロバイダーに通知
-        console.log(`Found ${results.length} occurrences`);
         provider.refresh(results);
     }
     catch (error) {
