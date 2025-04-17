@@ -1,7 +1,7 @@
 {
   "name": "range-navigator",
   "displayName": "Range Navigator",
-  "description": "",
+  "description": "Find all occurrences of selected text and display them in sidebar",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.54.0"
@@ -9,13 +9,31 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": ["*"],
   "main": "./out/extension.js",
   "contributes": {
+
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "range-navigator",
+          "title": "Range Navigator",
+          "icon": "resources/navigator.svg"
+        }
+      ]
+    },
+    "views": {
+      "range-navigator": [
+        {
+          "id": "rangeNavigatorView",
+          "name": "Text Occurrences"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "range-navigator.helloWorld",
-        "title": "Hello World"
+        "command": "range-navigator.findOccurrences",
+        "title": "Find Text Occurrences"
       }
     ]
   },
