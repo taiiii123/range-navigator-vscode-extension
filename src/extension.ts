@@ -41,14 +41,6 @@ class TextOccurrence extends vscode.TreeItem {
 	) {
 		super("", vscode.TreeItemCollapsibleState.None);
 
-		// ハイライト表示のためのラベルとHTMLを設定
-		this.description = `Line ${lineNumber + 1}`;
-
-		// サイドバーアイテムの表示をカスタマイズ
-		// 1. 行番号を表示
-		// 2. ハイライトされた部分の前後のテキストを表示
-		// 3. サンプルテキストの表示範囲を設定
-
 		// テキストの切り出しサイズを調整
 		const contextBefore = 20;
 		const contextAfter = 30;
@@ -63,21 +55,28 @@ class TextOccurrence extends vscode.TreeItem {
 			startIndex + searchText.length + contextAfter
 		);
 
-		// ラベルをリッチテキストとして設定
-		this.label = this.createLabel(textBefore, highlightedText, textAfter);
+		// Line番号を先頭に表示するように変更
+		const linePrefix = `${lineNumber + 1}: `;
+		const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
+
+		// ハイライトの位置も調整（Line XX: の分だけずらす）
+		const prefixLength = linePrefix.length;
+		const highlightStart = prefixLength + textBefore.length;
+		const highlightEnd = highlightStart + highlightedText.length;
+
+		this.label = {
+			label: fullText,
+			highlights: [[highlightStart, highlightEnd]]
+		};
+
+		// description はもう使わないので空にするか、必要に応じて別の情報を表示
+		this.description = "";
+
+		// アイコンを設定（青いアイコンを使用）
+		this.iconPath = new vscode.ThemeIcon("pin", new vscode.ThemeColor("terminal.ansiBlue"));
 
 		// ツールチップにはフルラインテキストを表示
 		this.tooltip = lineText.trim();
-	}
-
-	private createLabel(
-		before: string,
-		highlight: string,
-		after: string
-	): string {
-		// 実際のVSCodeツリービューでは完全なHTMLは使えないので
-		// ここではシンプルな表現で対応
-		return `${before}${highlight}${after}`;
 	}
 }
 
