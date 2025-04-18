@@ -1,5 +1,8 @@
 import * as vscode from "vscode";
 
+// グローバル変数としてデコレーションタイプを宣言
+let highlightDecorationType: vscode.TextEditorDecorationType;
+
 class RangeNavigatorProvider
 	implements vscode.TreeDataProvider<TextOccurrence> {
 	private _onDidChangeTreeData: vscode.EventEmitter<
@@ -31,6 +34,9 @@ class RangeNavigatorProvider
 }
 
 class TextOccurrence extends vscode.TreeItem {
+	// ハイライト用の行範囲を追加
+	public readonly lineRange: vscode.Range;
+
 	constructor(
 		public readonly searchText: string,
 		public readonly lineText: string,
@@ -40,6 +46,12 @@ class TextOccurrence extends vscode.TreeItem {
 		public readonly command?: vscode.Command
 	) {
 		super("", vscode.TreeItemCollapsibleState.None);
+
+		// 行全体の範囲を保存
+		this.lineRange = new vscode.Range(
+			lineNumber, 0,
+			lineNumber, lineText.length
+		);
 
 		// テキストの切り出しサイズを調整
 		const contextBefore = 20;
@@ -56,10 +68,10 @@ class TextOccurrence extends vscode.TreeItem {
 		);
 
 		// Line番号を先頭に表示するように変更
-		const linePrefix = `${lineNumber + 1}: `;
+		const linePrefix = `${lineNumber + 1}:  `;
 		const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
 
-		// ハイライトの位置も調整（Line XX: の分だけずらす）
+		// ハイライトの位置も調整（XX: の分だけずらす）
 		const prefixLength = linePrefix.length;
 		const highlightStart = prefixLength + textBefore.length;
 		const highlightEnd = highlightStart + highlightedText.length;
@@ -73,7 +85,8 @@ class TextOccurrence extends vscode.TreeItem {
 		this.description = "";
 
 		// アイコンを設定（青いアイコンを使用）
-		this.iconPath = new vscode.ThemeIcon("pin", new vscode.ThemeColor("terminal.ansiBlue"));
+		// アイコン https://microsoft.github.io/vscode-codicons/dist/codicon.html
+		this.iconPath = new vscode.ThemeIcon("list-selection", new vscode.ThemeColor("terminal.ansiBlue"));
 
 		// ツールチップにはフルラインテキストを表示
 		this.tooltip = lineText.trim();
@@ -83,6 +96,14 @@ class TextOccurrence extends vscode.TreeItem {
 export function activate(context: vscode.ExtensionContext) {
 	console.log("Activating Range Navigator extension");
 
+	// ハイライト用のデコレーションタイプを作成（オレンジ色に変更）
+	highlightDecorationType = vscode.window.createTextEditorDecorationType({
+		backgroundColor: 'rgba(255, 165, 0, 0.3)',  // オレンジ色（半透明）
+		border: '1px solid',
+		borderColor: 'rgba(255, 140, 0, 0.8)',  // 少し濃いオレンジ色の枠線
+		isWholeLine: true  // 行全体をハイライト
+	});
+
 	// プロバイダーを登録
 	const rangeNavigatorProvider = new RangeNavigatorProvider(context);
 
@@ -91,6 +112,24 @@ export function activate(context: vscode.ExtensionContext) {
 		treeDataProvider: rangeNavigatorProvider,
 		showCollapseAll: true,
 	});
+
+	// クリックされた行への移動とハイライト表示を行うコマンド
+	context.subscriptions.push(
+		vscode.commands.registerCommand('rangeNavigator.gotoOccurrence',
+			(docUri: vscode.Uri, position: vscode.Position, range: vscode.Range) => {
+				vscode.window.showTextDocument(docUri).then(editor => {
+					// カーソル位置を設定
+					editor.selection = new vscode.Selection(position, position);
+					// 見やすいようにその位置が画面中央に来るようにスクロール
+					editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+
+					setTimeout(() => {
+						highlightSelectedLine(editor, range);
+					}, 100); // 少し待ってからハイライト
+				});
+			}
+		)
+	);
 
 	// テキスト選択が変更されたときの処理
 	context.subscriptions.push(
@@ -115,6 +154,8 @@ export function activate(context: vscode.ExtensionContext) {
 			} else {
 				// 選択がない場合はリストをクリア
 				rangeNavigatorProvider.refresh([]);
+				// ハイライトも消去
+				clearHighlights(editor);
 			}
 		})
 	);
@@ -127,6 +168,12 @@ export function activate(context: vscode.ExtensionContext) {
 				if (editor && !editor.selection.isEmpty) {
 					const selectedText = editor.document.getText(editor.selection);
 					findOccurrences(editor, selectedText, rangeNavigatorProvider);
+				}
+			} else {
+				// サイドバーが閉じられたときにハイライトを消去
+				const editor = vscode.window.activeTextEditor;
+				if (editor) {
+					clearHighlights(editor);
 				}
 			}
 		})
@@ -143,12 +190,33 @@ export function activate(context: vscode.ExtensionContext) {
 				} else {
 					// 選択がない場合はリストをクリア
 					rangeNavigatorProvider.refresh([]);
+					// ハイライトも消去
+					clearHighlights(editor);
 				}
 			}
 		})
 	);
 
 	context.subscriptions.push(treeView);
+}
+
+// ハイライトを消去する関数
+function clearHighlights(editor: vscode.TextEditor) {
+	if (editor) {
+		editor.setDecorations(highlightDecorationType, []);
+	}
+}
+
+// 指定された行をハイライトする関数
+function highlightSelectedLine(editor: vscode.TextEditor, range: vscode.Range) {
+	// 既存のハイライトをクリア
+	clearHighlights(editor);
+
+	// 新しいハイライトを設定
+	editor.setDecorations(highlightDecorationType, [range]);
+
+	// デバッグ出力
+	console.log(`Highlighting line ${range.start.line + 1}`);
 }
 
 // 指定されたテキストの出現箇所をすべて検索する
@@ -187,16 +255,20 @@ async function findOccurrences(
 						match.index + searchText.length
 					);
 
-					// クリックしたらその位置に移動するコマンドを追加
+					// 行全体の範囲を取得
+					const lineRange = new vscode.Range(
+						new vscode.Position(i, 0),  // 行の先頭
+						new vscode.Position(i, lineText.length)  // 行の末尾
+					);
+
+					// クリックしたらその位置に移動してハイライトするコマンドを追加
 					const command = {
 						title: "Go to Occurrence",
-						command: "vscode.open",
+						command: "rangeNavigator.gotoOccurrence",
 						arguments: [
 							document.uri,
-							{
-								selection: new vscode.Range(startPos, endPos),
-								preserveFocus: false,
-							},
+							startPos,
+							lineRange
 						],
 					};
 
@@ -222,4 +294,9 @@ async function findOccurrences(
 	}
 }
 
-export function deactivate() { }
+export function deactivate() {
+	// デコレーションタイプを破棄
+	if (highlightDecorationType) {
+		highlightDecorationType.dispose();
+	}
+}
