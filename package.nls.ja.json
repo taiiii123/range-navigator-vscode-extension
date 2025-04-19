@@ -1,0 +1,7 @@
+{
+    "extension.rangeNavigator.sidebar.tab.title": "テキストの出現箇所",
+    "extension.rangeNavigator.highlight.backgroundColor.description": "test",
+    "extension.rangeNavigator.highlight.borderColor.description": "test",
+    "extension.rangeNavigator.collapseAll": "➖ 全て折りたたむ",
+    "extension.rangeNavigator.expandAll": "➕ 全て展開"
+}

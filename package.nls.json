@@ -1,0 +1,7 @@
+{
+    "extension.rangeNavigator.sidebar.tab.title": "Text Occurrences",
+    "extension.rangeNavigator.highlight.backgroundColor.description": "test",
+    "extension.rangeNavigator.highlight.borderColor.description": "test",
+    "extension.rangeNavigator.collapseAll": "➖ Collapse All",
+    "extension.rangeNavigator.expandAll": "➕ Expand All"
+}

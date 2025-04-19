@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import vscode, { l10n } from 'vscode';
 
 // グローバル変数としてデコレーションタイプを宣言
 let highlightDecorationType: vscode.TextEditorDecorationType;
@@ -92,7 +92,12 @@ class TextOccurrence extends TreeNode {
         );
 
         // 表示テキストを構築
-        const linePrefix = `${lineNumber + 1}:  `;
+        let linePrefix = `${lineNumber + 1}:  `;
+		if (l10n.t('language') === 'ja') {
+			linePrefix = `${lineNumber + 1} 行目:  `;
+		} else {
+			linePrefix = `Line ${lineNumber + 1}:  `;
+		}
         const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
 
         // ハイライト位置を調整
@@ -112,7 +117,6 @@ class TextOccurrence extends TreeNode {
             highlights: [[highlightStart, highlightEnd]]
         } as vscode.TreeItemLabel;
 
-        this.description = "";
         this.iconPath = new vscode.ThemeIcon("list-selection", new vscode.ThemeColor("terminal.ansiBlue"));
         this.tooltip = lineText.trim();
 
@@ -162,9 +166,14 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
     const structures: CodeStructureNode[] = [];
 
     // 簡易的なパターンマッチング（より高度な解析にはパーサーライブラリ使用を推奨）
-    const classPattern = /class\s+(\w+)/g;
-    const functionPattern = /function\s+(\w+)/g;
-    const methodPattern = /(\w+)\s*\([^)]*\)\s*{/g;
+	// クラス定義: Java, Python, C#, C++, Swift, Kotlin, Dart などに対応
+	const classPattern = /\bclass\s+(\w+)(?:\s+extends\s+\w+|\s*:\s*\w+)?/g;
+
+	// 関数定義: JavaScript, Python, PHP, Go, Rust, Swift, Kotlin, Dart, Scala, Ruby など対応
+	const functionPattern = /\b(?:function|def|fn|func|fun)\s+(\w+)\s*\([^)]*\)/g;
+
+	// メソッド定義: アクセス修飾子やstaticを含むJava, C#, TypeScript, Dartなどに対応
+	const methodPattern = /\b(?:public|private|protected|internal)?\s*(?:static\s+)?(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{/g;
 
     const text = document.getText();
     let match;
@@ -279,7 +288,7 @@ function organizeOccurrencesByStructure(
 
     // 未分類の検索結果を格納するノード
     const uncategorizedNode = new TreeNode(
-        "Other Occurrences",
+        l10n.t("📍 Other Occurrences"),
         vscode.TreeItemCollapsibleState.Expanded
     );
 
@@ -341,19 +350,58 @@ function organizeOccurrencesByStructure(
 export function activate(context: vscode.ExtensionContext) {
     console.log("Activating Range Navigator extension");
 
+    const config = vscode.workspace.getConfiguration('rangeNavigator');
+    const backgroundColor = config.get('highlight.backgroundColor', 'rgba(255, 165, 0, 0.3)');
+    const borderColor = config.get('highlight.borderColor', 'rgba(255, 140, 0, 0.8)');
+
+    // 設定が変更された場合にウィンドウをリロードするためのイベントリスナーを登録
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(async (e) => {
+			if (e.affectsConfiguration('rangeNavigator.highlight.backgroundColor')
+				|| e.affectsConfiguration('rangeNavigator.highlight.borderColor')
+		) {
+
+				const answer = await vscode.window.showInformationMessage(
+					l10n.t("Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?"),
+					l10n.t("Yes"),
+					l10n.t("No")
+				);
+
+				if (answer === l10n.t("Yes")) {
+					vscode.commands.executeCommand('workbench.action.reloadWindow');
+				}
+			}
+		})
+	);
+
     // ハイライト用のデコレーションタイプを作成
     highlightDecorationType = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(255, 165, 0, 0.3)',
+        backgroundColor: backgroundColor,
         border: '1px solid',
-        borderColor: 'rgba(255, 140, 0, 0.8)',
+        borderColor: borderColor,
         isWholeLine: true
     });
 
     const rangeNavigatorProvider = new RangeNavigatorProvider(context);
     const treeView = vscode.window.createTreeView("rangeNavigatorView", {
         treeDataProvider: rangeNavigatorProvider,
-        showCollapseAll: true,
+        showCollapseAll: false,
     });
+
+	// ツリービューを折りたたむコマンド
+	context.subscriptions.push(
+		vscode.commands.registerCommand("range-navigator.collapseAll", () => {
+			console.log("Range Navigator: Collapse All");
+			vscode.commands.executeCommand('workbench.actions.treeView.rangeNavigatorView.collapseAll');
+		})
+	);
+
+	// ツリービューを展開するコマンド
+	context.subscriptions.push(
+		vscode.commands.registerCommand("range-navigator.expandAll", () => {
+			expandAll(treeView, rangeNavigatorProvider);
+		})
+	);
 
     // クリックされた行への移動とハイライト表示を行うコマンド
     context.subscriptions.push(
@@ -448,6 +496,23 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(treeView);
+}
+
+// すべて展開関数の定義
+async function expandAll(treeView: vscode.TreeView<any>, provider: vscode.TreeDataProvider<any>) {
+    const roots = await provider.getChildren();
+
+    if (!roots) {
+        return;
+    }
+    for (const root of roots) {
+        await treeView.reveal(root, { expand: true });
+
+        const children = await provider.getChildren(root);
+        for (const child of children ?? []) {
+            await treeView.reveal(child, { expand: true });
+        }
+    }
 }
 
 // ハイライトを消去する関数

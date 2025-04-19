@@ -11,8 +11,8 @@
   ],
   "activationEvents": ["*"],
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "contributes": {
-
     "viewsContainers": {
       "activitybar": [
         {
@@ -25,17 +25,54 @@
     "views": {
       "range-navigator": [
         {
+          "type": "tree",
           "id": "rangeNavigatorView",
-          "name": "Text Occurrences"
+          "name": "%extension.rangeNavigator.sidebar.tab.title%"
         }
       ]
+    },
+    "configuration": {
+      "title": "Range Navigator",
+      "properties": {
+        "rangeNavigator.highlight.backgroundColor": {
+          "type": "string",
+          "default": "rgba(255, 165, 0, 0.3)",
+          "description": "%extension.rangeNavigator.highlight.backgroundColor.description%"
+        },
+        "rangeNavigator.highlight.borderColor": {
+          "type": "string",
+          "default": "rgba(255, 140, 0, 0.8)",
+          "description": "%extension.rangeNavigator.highlight.borderColor.description%"
+        }
+      }
     },
     "commands": [
       {
         "command": "range-navigator.findOccurrences",
         "title": "Find Text Occurrences"
+      },
+      {
+        "command": "range-navigator.expandAll",
+        "title": "%extension.rangeNavigator.expandAll%"
+      },
+      {
+        "command": "range-navigator.collapseAll",
+        "title": "%extension.rangeNavigator.collapseAll%"
       }
-    ]
+    ],"menus": {
+      "view/title": [
+        {
+          "command": "range-navigator.expandAll",
+          "when": "view == rangeNavigatorView",
+          "group": "navigation"
+        },
+        {
+          "command": "range-navigator.collapseAll",
+          "when": "view == rangeNavigatorView",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
