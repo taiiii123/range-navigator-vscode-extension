@@ -81,7 +81,6 @@ class TextOccurrence extends vscode.TreeItem {
 			highlights: [[highlightStart, highlightEnd]]
 		};
 
-		// description はもう使わないので空にするか、必要に応じて別の情報を表示
 		this.description = "";
 
 		// アイコンを設定（青いアイコンを使用）
@@ -116,12 +115,14 @@ export function activate(context: vscode.ExtensionContext) {
 	// クリックされた行への移動とハイライト表示を行うコマンド
 	context.subscriptions.push(
 		vscode.commands.registerCommand('rangeNavigator.gotoOccurrence',
-			(docUri: vscode.Uri, position: vscode.Position, range: vscode.Range) => {
+			(docUri: vscode.Uri, position: vscode.Position, range: vscode.Range, searchTextLength: number) => {
 				vscode.window.showTextDocument(docUri).then(editor => {
-					// カーソル位置を設定
-					editor.selection = new vscode.Selection(position, position);
+					// 検索テキストの範囲全体を選択するように変更
+					const selectionEnd = new vscode.Position(position.line, position.character + searchTextLength);
+					editor.selection = new vscode.Selection(position, selectionEnd);
+
 					// 見やすいようにその位置が画面中央に来るようにスクロール
-					editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+					editor.revealRange(new vscode.Range(position, selectionEnd), vscode.TextEditorRevealType.InCenter);
 
 					setTimeout(() => {
 						highlightSelectedLine(editor, range);
@@ -268,7 +269,8 @@ async function findOccurrences(
 						arguments: [
 							document.uri,
 							startPos,
-							lineRange
+							lineRange,
+							searchText.length
 						],
 					};
 

@@ -123,12 +123,13 @@ function activate(context) {
         showCollapseAll: true,
     });
     // クリックされた行への移動とハイライト表示を行うコマンド
-    context.subscriptions.push(vscode.commands.registerCommand('rangeNavigator.gotoOccurrence', (docUri, position, range) => {
+    context.subscriptions.push(vscode.commands.registerCommand('rangeNavigator.gotoOccurrence', (docUri, position, range, searchTextLength) => {
         vscode.window.showTextDocument(docUri).then(editor => {
-            // カーソル位置を設定
-            editor.selection = new vscode.Selection(position, position);
+            // 検索テキストの範囲全体を選択するように変更
+            const selectionEnd = new vscode.Position(position.line, position.character + searchTextLength);
+            editor.selection = new vscode.Selection(position, selectionEnd);
             // 見やすいようにその位置が画面中央に来るようにスクロール
-            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+            editor.revealRange(new vscode.Range(position, selectionEnd), vscode.TextEditorRevealType.InCenter);
             setTimeout(() => {
                 highlightSelectedLine(editor, range);
             }, 100); // 少し待ってからハイライト
@@ -242,12 +243,11 @@ async function findOccurrences(editor, searchText, provider) {
                         arguments: [
                             document.uri,
                             startPos,
-                            lineRange
+                            lineRange,
+                            searchText.length // 検索テキストの長さを追加
                         ],
                     };
                     results.push(new TextOccurrence(searchText, lineText, i, match.index, startPos, command));
-                    // 空行を追加したい
-                    results.push(new TextOccurrence(" ", " ", i, match.index, startPos));
                 }
             }
         }
