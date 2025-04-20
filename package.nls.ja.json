@@ -1,7 +1,9 @@
 {
     "extension.rangeNavigator.sidebar.tab.title": "テキストの出現箇所",
-    "extension.rangeNavigator.highlight.backgroundColor.description": "test",
-    "extension.rangeNavigator.highlight.borderColor.description": "test",
+    "extension.rangeNavigator.highlight.backgroundColor.description": "サイドバーの検索結果をクリックした後に選択された行をハイライトするための背景色を指定します。",
+    "extension.rangeNavigator.highlight.borderColor.description": "サイドバーの検索結果をクリックした後に選択された行をハイライトするための枠線の色を指定します。",
+    "extension.rangeNavigator.enableNavigationOnClick": "サイドバーのクラス、関数、メソッド名をクリックしたときに定義位置に移動するかどうか",
+    "extension.rangeNavigator.expandAll": "➕ 全て展開",
     "extension.rangeNavigator.collapseAll": "➖ 全て折りたたむ",
-    "extension.rangeNavigator.expandAll": "➕ 全て展開"
+    "extension.rangeNavigator.copyMessage": "メッセージをコピー"
 }

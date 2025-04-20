@@ -43,6 +43,11 @@
           "type": "string",
           "default": "rgba(255, 140, 0, 0.8)",
           "description": "%extension.rangeNavigator.highlight.borderColor.description%"
+        },
+        "rangeNavigator.enableNavigationOnClick": {
+          "type": "boolean",
+          "default": false,
+          "description": "%extension.rangeNavigator.enableNavigationOnClick%"
         }
       }
     },
@@ -58,6 +63,9 @@
       {
         "command": "range-navigator.collapseAll",
         "title": "%extension.rangeNavigator.collapseAll%"
+      },{
+        "command": "range-navigator.copyMessage",
+        "title": "%extension.rangeNavigator.copyMessage%"
       }
     ],"menus": {
       "view/title": [
@@ -70,6 +78,13 @@
           "command": "range-navigator.collapseAll",
           "when": "view == rangeNavigatorView",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "range-navigator.copyMessage",
+          "when": "view == rangeNavigatorView && viewItem == noResultsMessage",
+          "group": "1_modification"
         }
       ]
     }

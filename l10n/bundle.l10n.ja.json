@@ -3,5 +3,8 @@
     "📍 Other Occurrences": "📍 その他の出現箇所",
     "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?": "Range Navigator: 設定が変更されました。変更を適用するにはウィンドウを再読み込みする必要があります。今すぐ再読み込みしますか？",
     "Yes": "はい",
-    "No": "いいえ"
+    "No": "いいえ",
+    "Message copied to clipboard!": "メッセージがクリップボードにコピーされました!",
+    "No results found for: \"{0}\"": "検索結果がありません: 「{0}」",
+    "No items matching \"{0}\" were found. Right-click to copy this message.": "「{0}」に一致する項目は見つかりませんでした。右クリックでコピーできます。"
 }

@@ -1,7 +1,9 @@
 {
     "extension.rangeNavigator.sidebar.tab.title": "Text Occurrences",
-    "extension.rangeNavigator.highlight.backgroundColor.description": "test",
-    "extension.rangeNavigator.highlight.borderColor.description": "test",
+    "extension.rangeNavigator.highlight.backgroundColor.description": "Specifies the background color used to highlight the line selected after clicking on a search result in the sidebar.",
+    "extension.rangeNavigator.highlight.borderColor.description": "Specifies the border color used to highlight the line selected after clicking on a search result in the sidebar.",
+    "extension.rangeNavigator.enableNavigationOnClick": "Enable navigation to definition when clicking on class, function, or method names in the sidebar",
+    "extension.rangeNavigator.expandAll": "➕ Expand All",
     "extension.rangeNavigator.collapseAll": "➖ Collapse All",
-    "extension.rangeNavigator.expandAll": "➕ Expand All"
+    "extension.rangeNavigator.copyMessage": "Copy Message"
 }

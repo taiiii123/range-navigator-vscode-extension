@@ -3,5 +3,8 @@
     "📍 Other Occurrences": "📍 Other Occurrences",
     "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?": "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?",
     "Yes": "Yes",
-    "No": "No"
+    "No": "No",
+    "Message copied to clipboard!": "Message copied to clipboard!",
+    "No results found for: \"{0}\"": "No results found for: \"{0}\"",
+    "No items matching \"{0}\" were found. Right-click to copy this message.": "No items matching \"{0}\" were found. Right-click to copy this message."
 }
