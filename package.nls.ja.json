@@ -5,5 +5,6 @@
     "extension.rangeNavigator.enableNavigationOnClick": "サイドバーのクラス、関数、メソッド名をクリックしたときに定義位置に移動するかどうか",
     "extension.rangeNavigator.expandAll": "➕ 全て展開",
     "extension.rangeNavigator.collapseAll": "➖ 全て折りたたむ",
+    "extension.rangeNavigator.clearSearch": "検索をクリア",
     "extension.rangeNavigator.copyMessage": "メッセージをコピー"
 }

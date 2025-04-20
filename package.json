@@ -53,6 +53,11 @@
     },
     "commands": [
       {
+        "command": "range-navigator.clearSearch",
+        "title": "%extension.rangeNavigator.clearSearch%",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "range-navigator.findOccurrences",
         "title": "Find Text Occurrences"
       },
@@ -77,6 +82,11 @@
         {
           "command": "range-navigator.collapseAll",
           "when": "view == rangeNavigatorView",
+          "group": "navigation"
+        },
+        {
+          "command": "range-navigator.clearSearch",
+          "when": "view == rangeNavigatorView && lastSearchedText !== ''",
           "group": "navigation"
         }
       ],

@@ -5,6 +5,14 @@
     "Yes": "Yes",
     "No": "No",
     "Message copied to clipboard!": "Message copied to clipboard!",
-    "No results found for: \"{0}\"": "No results found for: \"{0}\"",
-    "No items matching \"{0}\" were found. Right-click to copy this message.": "No items matching \"{0}\" were found. Right-click to copy this message."
+    "No results found for: {0}": "No results found for: {0}",
+    "No items matching \"{0}\" were found. Right-click to copy this message.": "No items matching \"{0}\" were found. Right-click to copy this message.",
+
+    "Welcome to Range Navigator! 🔍": "Welcome to Range Navigator! 🔍",
+    "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator helps you find and visualize occurrences of selected text in your code.",
+    "How to use:": "How to use:",
+    "1. Select text in the editor": "1. Select text in the editor",
+    "2. All occurrences will be shown here": "2. All occurrences will be shown here",
+    "3. Click on an item to navigate to it": "3. Click on an item to navigate to it",
+    "4. Selected occurrences are highlighted": "4. Selected occurrences are highlighted"
 }
