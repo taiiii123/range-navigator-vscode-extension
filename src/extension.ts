@@ -9,6 +9,32 @@ let isNavigatingFromSidebar: boolean = false;
 // 初期表示済みフラグ
 let hasShownWelcomeMessage: boolean = false;
 
+// 検索履歴を保持する配列を変更
+let searchHistory: HistoryItem[] = [];
+
+// 検索履歴表示モードかどうかのフラグ
+let isSearchHistoryMode: boolean = false;
+
+
+
+// 検索行を記録するための拡張情報
+interface OccurrenceInfo {
+    documentUri: vscode.Uri;
+    lineNumber: number;
+    lineText: string;
+    position: vscode.Position;
+    searchText: string;
+    searchTextLength: number;
+}
+
+// 履歴用のクラス
+class HistoryItem {
+    constructor(
+        public readonly searchText: string,
+        public readonly occurrenceInfo: OccurrenceInfo
+    ) {}
+}
+
 // 階層構造をサポートするための拡張したTreeItemクラス
 class TreeNode extends vscode.TreeItem {
     children: TreeNode[] = [];
@@ -25,6 +51,41 @@ class TreeNode extends vscode.TreeItem {
     addChild(child: TreeNode): void {
         this.children.push(child);
         child.parentNode = this;
+    }
+}
+
+// 検索履歴の表示用ノード
+class SearchHistoryNode extends TreeNode {
+    constructor() {
+        const historyTitle = l10n.t('検索履歴:');
+
+        super(historyTitle, vscode.TreeItemCollapsibleState.Collapsed);
+        this.iconPath = new vscode.ThemeIcon("history");
+        this.tooltip = l10n.t('過去の検索を表示して再利用');
+        this.contextValue = 'searchHistoryRoot';
+    }
+}
+
+// 個々の検索履歴項目
+class SearchHistoryItemNode extends TreeNode {
+    constructor(
+        public readonly historyItem: HistoryItem
+    ) {
+        // 検索テキストと行番号を表示
+        const lineNumber = historyItem.occurrenceInfo.lineNumber + 1;
+        const label = l10n.t('行 {0}: "{1}"', lineNumber, historyItem.searchText);
+
+        super(label, vscode.TreeItemCollapsibleState.None);
+        this.iconPath = new vscode.ThemeIcon("search");
+        this.tooltip = historyItem.occurrenceInfo.lineText.trim();
+        this.contextValue = 'searchHistoryItem';
+
+        // クリックで行にジャンプするコマンドを設定
+        this.command = {
+            title: "Go to Line",
+            command: "rangeNavigator.gotoHistoryLine",
+            arguments: [historyItem]
+        };
     }
 }
 
@@ -200,10 +261,44 @@ class RangeNavigatorProvider implements vscode.TreeDataProvider<TreeNode> {
     private _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | null | void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
     private rootNodes: TreeNode[] = [];
+    private searchHistoryNode: SearchHistoryNode | null = null;
 
     constructor(private context: vscode.ExtensionContext) {
         // 初期表示用のウェルカムメッセージを設定
         this.showWelcomeMessage();
+    }
+
+    // このメソッドは必須 - TreeDataProvider インターフェースで要求される
+    getTreeItem(element: TreeNode): vscode.TreeItem {
+        return element;
+    }
+
+    // このメソッドも必須 - TreeDataProvider インターフェースで要求される
+    getChildren(element?: TreeNode): Thenable<TreeNode[]> {
+        if (!element) {
+            return Promise.resolve(this.rootNodes);
+        }
+        return Promise.resolve(element.children);
+    }
+
+    // オプションだが実装すると便利
+    getParent(element: TreeNode): vscode.ProviderResult<TreeNode> {
+        return element.parentNode;
+    }
+
+    // 検索履歴を保存するためのメソッド
+    saveSearchHistory(): void {
+        // 保存用の単純な形式に変換
+        const simpleHistory = searchHistory.map(item => ({
+            searchText: item.searchText,
+            documentUri: item.occurrenceInfo.documentUri.toString(),
+            lineNumber: item.occurrenceInfo.lineNumber,
+            lineText: item.occurrenceInfo.lineText,
+            character: item.occurrenceInfo.position.character,
+            searchTextLength: item.occurrenceInfo.searchTextLength
+        }));
+
+        this.context.globalState.update('searchHistory', simpleHistory);
     }
 
     // ウェルカムメッセージを表示
@@ -212,31 +307,50 @@ class RangeNavigatorProvider implements vscode.TreeDataProvider<TreeNode> {
         const welcomeNode = new WelcomeMessageNode();
         const usageNode = new UsageInfoNode();
 
-        this.rootNodes = [welcomeNode, usageNode];
+        // 検索履歴ノードを初期化するが、通常モードでは表示しない
+        this.searchHistoryNode = new SearchHistoryNode();
+        this.updateSearchHistoryNode();
+
+        // 検索履歴モードの場合のみ表示、通常モードでは追加しない
+        if (isSearchHistoryMode) {
+            this.rootNodes = [this.searchHistoryNode];
+        } else {
+            this.rootNodes = [welcomeNode, usageNode];
+        }
+
         this._onDidChangeTreeData.fire();
 
         // ウェルカムメッセージを表示済みとしてマーク
         hasShownWelcomeMessage = true;
     }
 
-    refresh(rootNodes: TreeNode[]): void {
-        this.rootNodes = rootNodes;
-        this._onDidChangeTreeData.fire();
-    }
-
-    getTreeItem(element: TreeNode): vscode.TreeItem {
-        return element;
-    }
-
-    getChildren(element?: TreeNode): Thenable<TreeNode[]> {
-        if (!element) {
-            return Promise.resolve(this.rootNodes);
+    // 検索履歴ノードを更新する
+    updateSearchHistoryNode(): void {
+        if (!this.searchHistoryNode) {
+            this.searchHistoryNode = new SearchHistoryNode();
         }
-        return Promise.resolve(element.children);
+
+        // 既存の子ノードをクリア
+        this.searchHistoryNode.children = [];
+
+        // 検索履歴から子ノードを追加
+        for (const item of searchHistory) {
+            const historyItem = new SearchHistoryItemNode(item);
+            this.searchHistoryNode.addChild(historyItem);
+        }
     }
 
-    getParent(element: TreeNode): vscode.ProviderResult<TreeNode> {
-        return element.parentNode;
+    refresh(rootNodes: TreeNode[]): void {
+        // 検索履歴モードの場合
+        if (isSearchHistoryMode) {
+            // 検索履歴モードでは、rootNodesをそのまま使用
+            this.rootNodes = rootNodes;
+        } else {
+            // 通常モードでは検索履歴ノードを追加しない
+            this.rootNodes = rootNodes;
+        }
+
+        this._onDidChangeTreeData.fire();
     }
 }
 
@@ -446,6 +560,43 @@ function organizeOccurrencesByStructure(
 export function activate(context: vscode.ExtensionContext) {
     console.log("Activating Range Navigator extension");
 
+    // 拡張機能のコンテキストから検索履歴を読み込む
+    const savedHistory = context.globalState.get('searchHistory', []) as any[];
+
+    try {
+        // 型が配列の場合のみ処理
+        if (Array.isArray(savedHistory)) {
+            // 保存された履歴を復元
+            searchHistory = savedHistory.map(item => {
+                if (item && typeof item === 'object' && 'documentUri' in item) {
+                    // 新しいフォーマットの場合
+                    const position = new vscode.Position(item.lineNumber, item.character);
+                    const occurrenceInfo: OccurrenceInfo = {
+                        documentUri: vscode.Uri.parse(item.documentUri),
+                        lineNumber: item.lineNumber,
+                        lineText: item.lineText || '',
+                        position: position,
+                        searchText: item.searchText,
+                        searchTextLength: item.searchTextLength || item.searchText.length
+                    };
+
+                    return new HistoryItem(item.searchText, occurrenceInfo);
+                }
+
+                // 変換できないアイテムはスキップ
+                return null;
+            }).filter(item => item !== null) as HistoryItem[];
+        } else {
+            // 配列でない場合は空の配列で初期化
+            searchHistory = [];
+        }
+    } catch (error) {
+        console.error("Error loading search history:", error);
+        // エラーが発生した場合は空の配列で初期化
+        searchHistory = [];
+    }
+
+    // 以下は既存のコード
     // コンテキスト変数を初期化
     updateSearchContext(false);
 
@@ -487,6 +638,154 @@ export function activate(context: vscode.ExtensionContext) {
         treeDataProvider: rangeNavigatorProvider,
         showCollapseAll: false,
     });
+
+    // 履歴から行に移動するコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('rangeNavigator.gotoHistoryLine',
+            async (historyItem: HistoryItem) => {
+                const docUri = historyItem.occurrenceInfo.documentUri;
+                const position = historyItem.occurrenceInfo.position;
+                const lineNumber = historyItem.occurrenceInfo.lineNumber;
+                const searchText = historyItem.searchText;
+                const searchTextLength = historyItem.occurrenceInfo.searchTextLength;
+
+                // サイドバーからのナビゲーションフラグを設定
+                isNavigatingFromSidebar = true;
+
+                try {
+                    // ドキュメントを開く
+                    const editor = await vscode.window.showTextDocument(docUri);
+                    const document = editor.document;
+
+                    // 行の現在のテキストを取得
+                    const currentLineText = document.lineAt(lineNumber).text;
+
+                    // 検索テキストが現在の行に含まれているか確認
+                    if (currentLineText.includes(searchText)) {
+                        // 検索テキストの現在の位置を探す
+                        const currentIndex = currentLineText.indexOf(searchText);
+                        const currentPosition = new vscode.Position(lineNumber, currentIndex);
+                        const selectionEnd = new vscode.Position(lineNumber, currentIndex + searchTextLength);
+
+                        // 検索テキストを選択
+                        editor.selection = new vscode.Selection(currentPosition, selectionEnd);
+
+                        // 見やすいようにスクロール位置を調整
+                        editor.revealRange(
+                            new vscode.Range(currentPosition, selectionEnd),
+                            vscode.TextEditorRevealType.InCenter
+                        );
+
+                        // 行ハイライトを適用
+                        const lineRange = new vscode.Range(
+                            lineNumber, 0,
+                            lineNumber, currentLineText.length
+                        );
+
+                        setTimeout(() => {
+                            highlightSelectedLine(editor, lineRange);
+                            // 操作完了後にフラグをリセット
+                            setTimeout(() => {
+                                isNavigatingFromSidebar = false;
+                            }, 300);
+                        }, 100);
+
+                        // 最後に検索したテキストを更新
+                        lastSearchedText = searchText;
+                    } else {
+                        // 検索テキストが行にない場合はカーソル位置だけ移動
+                        const linePosition = new vscode.Position(lineNumber, 0);
+                        editor.selection = new vscode.Selection(linePosition, linePosition);
+
+                        // 見やすいようにスクロール位置を調整
+                        editor.revealRange(
+                            new vscode.Range(linePosition, linePosition),
+                            vscode.TextEditorRevealType.InCenter
+                        );
+
+                        // ハイライトは行わないが、最後に検索したテキストを更新
+                        lastSearchedText = searchText;
+
+                        // 操作完了後にフラグをリセット
+                        setTimeout(() => {
+                            isNavigatingFromSidebar = false;
+                        }, 300);
+
+                        // 検索テキストが見つからない旨をメッセージ表示
+                        vscode.window.showInformationMessage(
+                            l10n.t('検索テキスト "{0}" は現在の行に含まれていません。', searchText)
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error navigating to history line:", error);
+                    vscode.window.showErrorMessage(l10n.t('履歴行への移動中にエラーが発生しました。'));
+                    isNavigatingFromSidebar = false;
+                }
+            }
+        )
+    );
+
+    // 検索履歴を表示するコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('range-navigator.showSearchHistory', () => {
+            isSearchHistoryMode = !isSearchHistoryMode;
+
+            // コンテキスト変数を設定してUI表示を切り替え
+            vscode.commands.executeCommand('setContext', 'rangeNavigator.historyMode', isSearchHistoryMode);
+
+            // 検索履歴モードに応じてツリービューを更新
+            if (isSearchHistoryMode) {
+                // 検索履歴のみを表示
+                showSearchHistoryOnly(rangeNavigatorProvider);
+            } else {
+                // 通常表示に戻す
+                if (lastSearchedText) {
+                    const editor = vscode.window.activeTextEditor;
+                    if (editor) {
+                        findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
+                    }
+                } else {
+                    rangeNavigatorProvider.showWelcomeMessage();
+                }
+            }
+        })
+    );
+
+    // 履歴から再検索するコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('rangeNavigator.searchAgain',
+            async (searchText: string) => {
+                const editor = vscode.window.activeTextEditor;
+                if (!editor) {
+                    return vscode.window.showWarningMessage(l10n.t('アクティブなエディタが見つかりません。'));
+                }
+
+                // 検索履歴モードを解除
+                isSearchHistoryMode = false;
+                vscode.commands.executeCommand('setContext', 'rangeNavigator.historyMode', false);
+
+                // 選択テキストを設定して検索を実行
+                lastSearchedText = searchText;
+                await findOccurrencesInStructure(editor, searchText, rangeNavigatorProvider);
+            }
+        )
+    );
+
+    // 履歴をクリアするコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('range-navigator.clearHistory', () => {
+            // 履歴をクリア
+            searchHistory = [];
+            // グローバルステートを更新
+            context.globalState.update('searchHistory', searchHistory);
+            // ツリービューを更新
+            if (rangeNavigatorProvider instanceof RangeNavigatorProvider) {
+                rangeNavigatorProvider.updateSearchHistoryNode();
+                rangeNavigatorProvider.refresh(rangeNavigatorProvider['rootNodes']);
+            }
+            vscode.window.showInformationMessage(l10n.t('検索履歴をクリアしました。'));
+        })
+    );
 
 	// ツリービューを折りたたむコマンド
 	context.subscriptions.push(
@@ -531,6 +830,23 @@ export function activate(context: vscode.ExtensionContext) {
                             isNavigatingFromSidebar = false;
                         }, 300);
                     }, 100);
+
+                    // クリックされた行を履歴に追加
+                    const searchText = editor.document.getText(editor.selection);
+                    if (searchText && searchText.length > 0) {
+                        // 履歴情報を作成
+                        const occurrenceInfo: OccurrenceInfo = {
+                            documentUri: docUri,
+                            lineNumber: position.line,
+                            lineText: editor.document.lineAt(position.line).text,
+                            position: position,
+                            searchText: searchText,
+                            searchTextLength: searchTextLength
+                        };
+
+                        // 履歴に追加
+                        addToLineHistory(searchText, occurrenceInfo, rangeNavigatorProvider);
+                    }
                 });
             }
         )
@@ -737,6 +1053,67 @@ export function activate(context: vscode.ExtensionContext) {
     );
 }
 
+// 行履歴を追加する関数
+function addToLineHistory(
+    searchText: string,
+    occurrenceInfo: OccurrenceInfo,
+    provider: RangeNavigatorProvider
+): void {
+    // 設定から最大履歴数を取得
+    const config = vscode.workspace.getConfiguration('rangeNavigator');
+    const maxHistorySize = config.get('history.maxSize', 10);
+
+    // 新しい履歴アイテムを作成
+    const newItem = new HistoryItem(searchText, occurrenceInfo);
+
+    // 重複する履歴を探す
+    const duplicateIndex = searchHistory.findIndex(item =>
+        item.occurrenceInfo.documentUri.toString() === occurrenceInfo.documentUri.toString() &&
+        item.occurrenceInfo.lineNumber === occurrenceInfo.lineNumber &&
+        item.searchText === searchText
+    );
+
+    // 重複があれば削除
+    if (duplicateIndex !== -1) {
+        searchHistory.splice(duplicateIndex, 1);
+    }
+
+    // 履歴の先頭に追加
+    searchHistory.unshift(newItem);
+
+    // 最大数を超えた場合は古いものを削除
+    if (searchHistory.length > maxHistorySize) {
+        searchHistory = searchHistory.slice(0, maxHistorySize);
+    }
+
+    // グローバルステートに保存
+    provider.saveSearchHistory();
+
+    // 検索履歴ノードを更新
+    provider.updateSearchHistoryNode();
+}
+
+// 検索履歴のみを表示する関数
+function showSearchHistoryOnly(provider: RangeNavigatorProvider): void {
+    // 検索履歴ノードのみを表示
+    const historyNode = new SearchHistoryNode();
+
+    // 検索履歴を更新
+    for (const item of searchHistory) {
+        const historyItem = new SearchHistoryItemNode(item);
+        historyNode.addChild(historyItem);
+    }
+
+    // 見出し表示を変更
+    historyNode.label = l10n.t('検索履歴');
+
+    // 検索履歴を常に展開表示
+    historyNode.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+
+    // ツリービューを更新（検索履歴ノードのみを表示）
+    provider.refresh([historyNode]);
+}
+
 // すべて展開関数の定義
 async function expandAll(treeView: vscode.TreeView<any>, provider: vscode.TreeDataProvider<any>) {
     const roots = await provider.getChildren();
@@ -790,6 +1167,41 @@ async function findOccurrencesInStructure(
         provider.refresh([]);
         return;
     }
+
+    if (document.lineCount > 0) {
+        // 検索テキストの最初の出現位置を探す
+        let firstOccurrence: OccurrenceInfo | null = null;
+
+        for (let i = 0; i < document.lineCount; i++) {
+            const line = document.lineAt(i);
+            const lineText = line.text;
+            const index = lineText.indexOf(searchText);
+
+            if (index !== -1) {
+                const position = new vscode.Position(i, index);
+                firstOccurrence = {
+                    documentUri: document.uri,
+                    lineNumber: i,
+                    lineText: lineText,
+                    position: position,
+                    searchText: searchText,
+                    searchTextLength: searchText.length
+                };
+                break;
+            }
+        }
+
+        // 出現位置があれば履歴に追加
+        if (firstOccurrence) {
+            addToLineHistory(searchText, firstOccurrence, provider);
+        }
+    }
+
+    // グローバルステートに保存（アクセサーメソッドを使用）
+    provider.saveSearchHistory();
+
+    // 検索履歴ノードを更新
+    provider.updateSearchHistoryNode();
 
     try {
         // 正規表現で特殊文字をエスケープ

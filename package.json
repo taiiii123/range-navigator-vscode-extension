@@ -48,6 +48,13 @@
           "type": "boolean",
           "default": false,
           "description": "%extension.rangeNavigator.enableNavigationOnClick%"
+        },
+        "rangeNavigator.history.maxSize": {
+            "type": "number",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "保存する検索履歴の最大数"
         }
       }
     },
@@ -76,6 +83,16 @@
       {
         "command": "range-navigator.copyMessage",
         "title": "%extension.rangeNavigator.copyMessage%"
+      },
+      {
+        "command": "range-navigator.clearHistory",
+        "title": "Range Navigator: 検索履歴をクリア"
+      },
+      {
+        "command": "range-navigator.showSearchHistory",
+        "title": "検索履歴を表示",
+        "category": "Range Navigator",
+        "icon": "$(history)"
       }
     ],"menus": {
       "view/title": [
@@ -93,6 +110,12 @@
           "command": "range-navigator.clearSearch",
           "when": "view == rangeNavigatorView && lastSearchedText !== ''",
           "group": "navigation"
+        },
+        {
+          "command": "range-navigator.showSearchHistory",
+          "when": "view == rangeNavigatorView",
+          "group": "navigation",
+          "icon": "$(history)"
         }
       ],
       "view/item/context": [
@@ -100,6 +123,11 @@
           "command": "range-navigator.copyMessage",
           "when": "view == rangeNavigatorView && viewItem == noResultsMessage",
           "group": "1_modification"
+        },
+        {
+          "command": "range-navigator.clearHistory",
+          "when": "view == rangeNavigatorView && viewItem == searchHistoryRoot",
+          "group": "inline"
         }
       ]
     }
