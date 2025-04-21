@@ -1,12 +1,17 @@
 {
     "language": "ja",
-    "📍 Other Occurrences": "📍 その他の出現箇所",
+    "{0} ({1})": "{0} ({1}件)",
+    "📍 Other Occurrences ({0})": "📍 その他の検索結果 ({0}件)",
     "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?": "Range Navigator: 設定が変更されました。変更を適用するにはウィンドウを再読み込みする必要があります。今すぐ再読み込みしますか？",
     "Yes": "はい",
     "No": "いいえ",
     "Message copied to clipboard!": "メッセージがクリップボードにコピーされました!",
     "No results found for: {0}": "検索結果がありません: {0}",
     "No items matching \"{0}\" were found. Right-click to copy this message.": "「{0}」に一致する項目は見つかりませんでした。右クリックでコピーできます。",
+    "Enter text to search for": "検索するテキストを入力",
+    "Search for text in the current document": "現在のドキュメント内でテキストを検索",
+    "No active editor found.": "アクティブなエディタが見つかりません。",
+    "Line {0}: ": "{0} 行目: ",
 
     "Welcome to Range Navigator! 🔍": "Range Navigator へようこそ！ 🔍",
     "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator は選択したテキストの出現箇所を検索して視覚化するのに役立ちます。",

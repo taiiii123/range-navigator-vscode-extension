@@ -1,12 +1,17 @@
 {
     "language": "en",
-    "📍 Other Occurrences": "📍 Other Occurrences",
+    "{0} ({1})": "{0} ({1})",
+    "📍 Other Occurrences ({0})": "📍 Other Occurrences ({0})",
     "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?": "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?",
     "Yes": "Yes",
     "No": "No",
     "Message copied to clipboard!": "Message copied to clipboard!",
     "No results found for: {0}": "No results found for: {0}",
     "No items matching \"{0}\" were found. Right-click to copy this message.": "No items matching \"{0}\" were found. Right-click to copy this message.",
+    "Enter text to search for": "Enter text to search for",
+    "Search for text in the current document": "Search for text in the current document",
+    "No active editor found.": "No active editor found.",
+    "Line {0}: ": "Line {0}: ",
 
     "Welcome to Range Navigator! 🔍": "Welcome to Range Navigator! 🔍",
     "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator helps you find and visualize occurrences of selected text in your code.",

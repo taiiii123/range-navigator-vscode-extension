@@ -79,9 +79,10 @@ class CodeStructureNode extends TreeNode {
         public readonly document: vscode.TextDocument,
         collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Expanded
     ) {
+        // ラベルをカスタマイズしない（後で更新する）
         super(name, collapsibleState);
 
-        // アイコンの設定
+        // アイコンの設定（既存のコードと同じ）
         switch (type) {
             case 'class':
                 this.iconPath = new vscode.ThemeIcon("symbol-class");
@@ -100,7 +101,6 @@ class CodeStructureNode extends TreeNode {
         const config = vscode.workspace.getConfiguration('rangeNavigator');
         const enableNavigation = config.get('enableNavigationOnClick', true);
 
-
         // 設定が有効な場合のみコマンドを設定
         if (enableNavigation) {
             // コマンドの設定（クリックでソースコードの位置に移動）
@@ -110,6 +110,18 @@ class CodeStructureNode extends TreeNode {
                 arguments: [document.uri, range.start, range]
             };
         }
+    }
+
+    // 子ノードが追加された後にラベルを更新するメソッドを追加
+    updateLabelWithCount(): void {
+        // 子ノードの数を取得（検索結果の件数）
+        const count = this.children.length;
+
+        // 件数を表示するラベルを作成
+        let label = l10n.t('{0} ({1})', this.name, count);
+
+        // ラベルを更新
+        this.label = label;
     }
 }
 
@@ -148,12 +160,7 @@ class TextOccurrence extends TreeNode {
         );
 
         // 表示テキストを構築
-        let linePrefix = `${lineNumber + 1}:  `;
-		if (l10n.t('language') === 'ja') {
-			linePrefix = `${lineNumber + 1} 行目:  `;
-		} else {
-			linePrefix = `Line ${lineNumber + 1}:  `;
-		}
+        let linePrefix = l10n.t('Line {0}: ', lineNumber + 1);
         const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
 
         // ハイライト位置を調整
@@ -397,8 +404,8 @@ function organizeOccurrencesByStructure(
             }
 
             if (matched) {
-				break;
-			};
+                break;
+            };
         }
 
         // どの構造にも属さない場合は「その他」に分類
@@ -411,8 +418,25 @@ function organizeOccurrencesByStructure(
     // 子ノードを持たない構造ノードを削除
     const filteredRootNodes = rootNodes.filter(node => node.children.length > 0);
 
-    // 未分類の出現箇所があれば追加
+    // 検索件数をラベルに反映
+    for (const node of filteredRootNodes) {
+        if (node instanceof CodeStructureNode) {
+            node.updateLabelWithCount();
+
+            // 子ノードの件数も更新
+            for (const childNode of node.children) {
+                if (childNode instanceof CodeStructureNode) {
+                    childNode.updateLabelWithCount();
+                }
+            }
+        }
+    }
+
+    // 未分類の出現箇所があれば追加とカウント表示
     if (hasUncategorized) {
+        // 未分類ノードのラベルを更新
+        uncategorizedNode.label = l10n.t('📍 Other Occurrences ({0})', uncategorizedNode.children.length);
+
         filteredRootNodes.push(uncategorizedNode);
     }
 
@@ -546,6 +570,9 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // 選択テキスト変更イベントハンドラ
+    let previousSelection: vscode.Selection | undefined;
+
+    // 選択テキスト変更イベントハンドラ
     const handleSelectionChange = async (editor: vscode.TextEditor | undefined) => {
         if (!editor || !treeView.visible) {
             return;
@@ -558,7 +585,11 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
+        // 範囲選択の場合のみハイライトをクリア
         if (!selection.isEmpty) {
+            // 前回も範囲選択だった場合、もしくは初めての範囲選択の場合
+            clearHighlights(editor);
+
             const selectedText = editor.document.getText(selection);
             if (selectedText && selectedText.length > 0) {
                 console.log(`Selected text: "${selectedText}"`);
@@ -566,14 +597,18 @@ export function activate(context: vscode.ExtensionContext) {
                 await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
             }
         } else {
-            // 選択がクリアされた場合でも、最後に検索したテキストの結果を維持
+            // カーソル位置の変更だけの場合（範囲選択なし）
+            // 選択がクリアされた場合でも、ハイライトとサイドバーの結果を維持
             if (lastSearchedText) {
-                // 何もしない - 検索結果はそのまま表示
+                // 何もしない - ハイライトと検索結果はそのまま表示
             } else {
                 // 検索結果がない場合はウェルカムメッセージを表示
                 rangeNavigatorProvider.showWelcomeMessage();
             }
         }
+
+        // 現在の選択状態を保存
+        previousSelection = selection;
     };
 
     // 検索をクリアするコマンド

@@ -3,6 +3,7 @@
     "extension.rangeNavigator.highlight.backgroundColor.description": "サイドバーの検索結果をクリックした後に選択された行をハイライトするための背景色を指定します。",
     "extension.rangeNavigator.highlight.borderColor.description": "サイドバーの検索結果をクリックした後に選択された行をハイライトするための枠線の色を指定します。",
     "extension.rangeNavigator.enableNavigationOnClick": "サイドバーのクラス、関数、メソッド名をクリックしたときに定義位置に移動するかどうか",
+    "extension.rangeNavigator.findOccurrences": "出現箇所を検索",
     "extension.rangeNavigator.expandAll": "➕ 全て展開",
     "extension.rangeNavigator.collapseAll": "➖ 全て折りたたむ",
     "extension.rangeNavigator.clearSearch": "検索をクリア",

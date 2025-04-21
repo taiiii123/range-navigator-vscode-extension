@@ -55,20 +55,25 @@
       {
         "command": "range-navigator.clearSearch",
         "title": "%extension.rangeNavigator.clearSearch%",
+        "category": "Range Navigator",
         "icon": "$(clear-all)"
       },
       {
         "command": "range-navigator.findOccurrences",
-        "title": "Find Text Occurrences"
+        "title": "%extension.rangeNavigator.findOccurrences%",
+        "category": "Range Navigator"
       },
       {
         "command": "range-navigator.expandAll",
-        "title": "%extension.rangeNavigator.expandAll%"
+        "title": "%extension.rangeNavigator.expandAll%",
+        "category": "Range Navigator"
       },
       {
         "command": "range-navigator.collapseAll",
-        "title": "%extension.rangeNavigator.collapseAll%"
-      },{
+        "title": "%extension.rangeNavigator.collapseAll%",
+        "category": "Range Navigator"
+      },
+      {
         "command": "range-navigator.copyMessage",
         "title": "%extension.rangeNavigator.copyMessage%"
       }
