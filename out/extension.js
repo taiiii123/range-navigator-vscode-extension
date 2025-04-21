@@ -42,6 +42,8 @@ let highlightDecorationType;
 let lastSearchedText = '';
 // 選択がサイドバーからのものかを判断するフラグ
 let isNavigatingFromSidebar = false;
+// 初期表示済みフラグ
+let hasShownWelcomeMessage = false;
 // 階層構造をサポートするための拡張したTreeItemクラス
 class TreeNode extends vscode_1.default.TreeItem {
     children = [];
@@ -53,6 +55,38 @@ class TreeNode extends vscode_1.default.TreeItem {
     addChild(child) {
         this.children.push(child);
         child.parentNode = this;
+    }
+}
+// ウェルカムメッセージノード
+class WelcomeMessageNode extends TreeNode {
+    constructor() {
+        // 言語に基づいてメッセージを変更
+        const message = vscode_1.l10n.t('Welcome to Range Navigator! 🔍');
+        super(message, vscode_1.default.TreeItemCollapsibleState.None);
+        this.iconPath = new vscode_1.default.ThemeIcon("star");
+        // ツールチップも言語に基づいて設定
+        this.tooltip = vscode_1.l10n.t('Range Navigator helps you find and visualize occurrences of selected text in your code.');
+    }
+}
+// 使用方法ノード
+class UsageInfoNode extends TreeNode {
+    constructor() {
+        // 言語に基づいてタイトルを変更
+        const messageTitle = vscode_1.l10n.t('How to use:');
+        super(messageTitle, vscode_1.default.TreeItemCollapsibleState.Expanded);
+        this.iconPath = new vscode_1.default.ThemeIcon("info");
+        // 言語に基づいて使用方法の詳細を追加
+        this.addChild(new InstructionNode(vscode_1.l10n.t('1. Select text in the editor'), 'selection'));
+        this.addChild(new InstructionNode(vscode_1.l10n.t('2. All occurrences will be shown here'), 'list-tree'));
+        this.addChild(new InstructionNode(vscode_1.l10n.t('3. Click on an item to navigate to it'), 'go-to-file'));
+        this.addChild(new InstructionNode(vscode_1.l10n.t('4. Selected occurrences are highlighted'), 'symbol-color'));
+    }
+}
+// 使用方法の各ステップノード
+class InstructionNode extends TreeNode {
+    constructor(instruction, iconName) {
+        super(instruction, vscode_1.default.TreeItemCollapsibleState.None);
+        this.iconPath = new vscode_1.default.ThemeIcon(iconName);
     }
 }
 // コード構造ノード（クラス・関数などを表す）
@@ -168,6 +202,18 @@ class RangeNavigatorProvider {
     rootNodes = [];
     constructor(context) {
         this.context = context;
+        // 初期表示用のウェルカムメッセージを設定
+        this.showWelcomeMessage();
+    }
+    // ウェルカムメッセージを表示
+    showWelcomeMessage() {
+        // ウェルカムメッセージのルートノードを作成
+        const welcomeNode = new WelcomeMessageNode();
+        const usageNode = new UsageInfoNode();
+        this.rootNodes = [welcomeNode, usageNode];
+        this._onDidChangeTreeData.fire();
+        // ウェルカムメッセージを表示済みとしてマーク
+        hasShownWelcomeMessage = true;
     }
     refresh(rootNodes) {
         this.rootNodes = rootNodes;
@@ -325,6 +371,8 @@ function organizeOccurrencesByStructure(occurrences, structures, document) {
 }
 function activate(context) {
     console.log("Activating Range Navigator extension");
+    // コンテキスト変数を初期化
+    updateSearchContext(false);
     const config = vscode_1.default.workspace.getConfiguration('rangeNavigator');
     const backgroundColor = config.get('highlight.backgroundColor', 'rgba(255, 165, 0, 0.3)');
     const borderColor = config.get('highlight.borderColor', 'rgba(255, 140, 0, 0.8)');
@@ -426,11 +474,16 @@ function activate(context) {
                 // 何もしない - 検索結果はそのまま表示
             }
             else {
-                rangeNavigatorProvider.refresh([]);
-                clearHighlights(editor);
+                // 検索結果がない場合はウェルカムメッセージを表示
+                rangeNavigatorProvider.showWelcomeMessage();
             }
         }
     };
+    // 検索をクリアするコマンド
+    context.subscriptions.push(vscode_1.default.commands.registerCommand('range-navigator.clearSearch', () => {
+        const editor = vscode_1.default.window.activeTextEditor;
+        clearSearch(rangeNavigatorProvider, editor);
+    }));
     // テキスト選択変更イベント
     context.subscriptions.push(vscode_1.default.window.onDidChangeTextEditorSelection((event) => {
         handleSelectionChange(event.textEditor);
@@ -446,6 +499,10 @@ function activate(context) {
             else if (editor) {
                 handleSelectionChange(editor);
             }
+            else {
+                // エディタが開かれていない場合はウェルカムメッセージを表示
+                rangeNavigatorProvider.showWelcomeMessage();
+            }
         }
         else if (vscode_1.default.window.activeTextEditor) {
             clearHighlights(vscode_1.default.window.activeTextEditor);
@@ -458,8 +515,12 @@ function activate(context) {
                 // 新しいエディタが開かれたとき、最後の検索テキストを使用
                 findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
             }
-            else {
+            else if (editor) {
                 handleSelectionChange(editor);
+            }
+            else {
+                // エディタが開かれていない場合はウェルカムメッセージを表示
+                rangeNavigatorProvider.showWelcomeMessage();
             }
         }
     }));
@@ -548,9 +609,17 @@ function highlightSelectedLine(editor, range) {
     console.log(`Highlighting line ${range.start.line + 1}`);
 }
 // 指定されたテキストの出現箇所をすべて検索し、コード構造と関連付ける
+function updateSearchContext(hasSearchText) {
+    vscode_1.default.commands.executeCommand('setContext', 'lastSearchedText', hasSearchText);
+}
+// findOccurrencesInStructure関数内の修正
 async function findOccurrencesInStructure(editor, searchText, provider) {
     const document = editor.document;
     const results = [];
+    // 明示的にboolean型に変換する
+    const hasValidSearchText = Boolean(searchText && searchText.trim() !== "");
+    // コンテキスト変数を更新
+    updateSearchContext(hasValidSearchText);
     // 選択テキストが空の場合は早期リターン
     if (!searchText || searchText.trim() === "") {
         provider.refresh([]);
@@ -579,7 +648,7 @@ async function findOccurrencesInStructure(editor, searchText, provider) {
         // 検索結果が0件の場合はメッセージを表示
         if (results.length === 0) {
             // メッセージテキスト
-            const messageText = vscode_1.l10n.t("No results found for: \"{0}\"", searchText);
+            const messageText = vscode_1.l10n.t("No results found for: {0}", searchText);
             // メッセージノードを作成
             const noResultsNode = new TreeNode(messageText, vscode_1.default.TreeItemCollapsibleState.None);
             // アイコンを設定
@@ -603,6 +672,21 @@ async function findOccurrencesInStructure(editor, searchText, provider) {
         console.error("Error in findOccurrencesInStructure:", error);
         vscode_1.default.window.showErrorMessage(`Error finding occurrences: ${error}`);
     }
+}
+// クリア機能を実装する関数
+function clearSearch(rangeNavigatorProvider, editor) {
+    // 最後に検索したテキストをクリア
+    lastSearchedText = '';
+    // コンテキスト変数を更新
+    updateSearchContext(false);
+    // エディタがある場合はハイライトをクリア
+    if (editor) {
+        clearHighlights(editor);
+    }
+    // ウェルカムメッセージを表示
+    rangeNavigatorProvider.showWelcomeMessage();
+    // 通知を表示
+    vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('Search cleared'));
 }
 function deactivate() {
     if (highlightDecorationType) {

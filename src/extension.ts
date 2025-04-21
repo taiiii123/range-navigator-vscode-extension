@@ -845,9 +845,6 @@ function clearSearch(rangeNavigatorProvider: RangeNavigatorProvider, editor?: vs
 
     // ウェルカムメッセージを表示
     rangeNavigatorProvider.showWelcomeMessage();
-
-    // 通知を表示
-    vscode.window.showInformationMessage(l10n.t('Search cleared'));
 }
 
 export function deactivate() {
