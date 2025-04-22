@@ -19,6 +19,9 @@ let isSearchHistoryMode: boolean = false;
 let currentHighlightRange: vscode.Range | null = null;
 let currentHighlightLineContent: string | null = null;
 
+// 選択中のアイテムを保持するグローバル変数
+let selectedOccurrence: TextOccurrence | null = null;
+
 
 
 // 検索行を記録するための拡張情報
@@ -193,7 +196,15 @@ class CodeStructureNode extends TreeNode {
 class TextOccurrence extends TreeNode {
     // ハイライト用の行範囲を追加
     public readonly lineRange: vscode.Range;
-    private highlightInfo: { fullText: string; highlights: [number, number][] };
+    // 初期値を設定して型エラーを解消
+    private highlightInfo: { fullText: string; highlights: [number, number][] } = {
+        fullText: "",
+        highlights: [[0, 0]]
+    };
+    private _isSelected: boolean = false;
+    private textBefore: string = "";
+    private highlightedText: string = "";
+    private textAfter: string = "";
 
     constructor(
         public readonly searchText: string,
@@ -217,34 +228,17 @@ class TextOccurrence extends TreeNode {
         const contextBefore = 20;
         const contextAfter = 30;
         const startPos = Math.max(0, startIndex - contextBefore);
-        const textBefore = lineText.substring(startPos, startIndex);
-        const highlightedText = lineText.substring(startIndex, startIndex + searchText.length);
-        const textAfter = lineText.substring(
+        this.textBefore = lineText.substring(startPos, startIndex);
+        this.highlightedText = lineText.substring(startIndex, startIndex + searchText.length);
+        this.textAfter = lineText.substring(
             startIndex + searchText.length,
             Math.min(lineText.length, startIndex + searchText.length + contextAfter)
         );
 
-        // 表示テキストを構築
-        let linePrefix = l10n.t('Line {0}: ', lineNumber + 1);
-        const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
+        // 表示テキストを更新
+        this.updateLabel();
 
-        // ハイライト位置を調整
-        const prefixLength = linePrefix.length;
-        const highlightStart = prefixLength + textBefore.length;
-        const highlightEnd = highlightStart + highlightedText.length;
-
-        // TreeItemLabelを設定（コンストラクタでラベルを設定後に上書き）
-        this.highlightInfo = {
-            fullText: fullText,
-            highlights: [[highlightStart, highlightEnd]]
-        };
-
-        // ラベルオブジェクトを設定（直接this.labelに代入はできない）
-        this.label = {
-            label: fullText,
-            highlights: [[highlightStart, highlightEnd]]
-        } as vscode.TreeItemLabel;
-
+        // 通常のアイコンを設定
         this.iconPath = new vscode.ThemeIcon("list-selection", new vscode.ThemeColor("terminal.ansiBlue"));
         this.tooltip = lineText.trim();
 
@@ -253,11 +247,59 @@ class TextOccurrence extends TreeNode {
             this.command = {
                 title: "Go to Occurrence",
                 command: "rangeNavigator.gotoOccurrence",
-                arguments: [document.uri, position, this.lineRange, searchText.length],
+                arguments: [document.uri, position, this.lineRange, searchText.length, this],
             };
         } else {
             this.command = command;
         }
+    }
+
+    // 選択状態を設定するメソッド
+    public set isSelected(value: boolean) {
+        this._isSelected = value;
+
+        // 選択状態に応じてアイコンを変更
+        if (this._isSelected) {
+            this.iconPath = new vscode.ThemeIcon("check", new vscode.ThemeColor("terminal.ansiGreen"));
+        } else {
+            this.iconPath = new vscode.ThemeIcon("list-selection", new vscode.ThemeColor("terminal.ansiBlue"));
+        }
+
+        // ラベルを更新
+        this.updateLabel();
+    }
+
+    // 選択状態を取得するメソッド
+    public get isSelected(): boolean {
+        return this._isSelected;
+    }
+
+    // ラベルを更新するメソッド
+    private updateLabel() {
+        // 行番号プレフィックス
+        let linePrefix = l10n.t('行 {0}: ', this.lineNumber + 1);
+
+        // 選択中の場合、特別なマーカーを追加
+        const marker = this._isSelected ? '➤ ' : '';
+        const fullText = `${marker}${linePrefix}${this.textBefore}${this.highlightedText}${this.textAfter}`;
+
+        // ハイライト位置を調整（マーカーの有無によって調整）
+        const markerLength = this._isSelected ? 2 : 0;
+        const prefixLength = linePrefix.length;
+        const highlightStart = markerLength + prefixLength + this.textBefore.length;
+        const highlightEnd = highlightStart + this.highlightedText.length;
+
+        // ハイライト情報を更新（この変数を使用しない場合は削除してもよい）
+        this.highlightInfo = {
+            fullText: fullText,
+            highlights: [[highlightStart, highlightEnd]]
+        };
+
+        // ラベルを設定
+        this.label = {
+            label: fullText,
+            highlights: [[highlightStart, highlightEnd]]
+        } as vscode.TreeItemLabel;
     }
 }
 
@@ -270,6 +312,11 @@ class RangeNavigatorProvider implements vscode.TreeDataProvider<TreeNode> {
     constructor(private context: vscode.ExtensionContext) {
         // 初期表示用のウェルカムメッセージを設定
         this.showWelcomeMessage();
+    }
+
+    // 特定のノードを更新するメソッド
+    refreshNode(node: TreeNode): void {
+        this._onDidChangeTreeData.fire(node);
     }
 
     // このメソッドは必須 - TreeDataProvider インターフェースで要求される
@@ -1164,7 +1211,18 @@ export function activate(context: vscode.ExtensionContext) {
     // クリックされた行への移動とハイライト表示を行うコマンド
     context.subscriptions.push(
         vscode.commands.registerCommand('rangeNavigator.gotoOccurrence',
-            (docUri: vscode.Uri, position: vscode.Position, range: vscode.Range, searchTextLength: number) => {
+            (docUri: vscode.Uri, position: vscode.Position, range: vscode.Range, searchTextLength: number, occurrence: TextOccurrence) => {
+                // 前の選択をクリア
+                if (selectedOccurrence && selectedOccurrence !== occurrence) {
+                    selectedOccurrence.isSelected = false;
+                    rangeNavigatorProvider.refreshNode(selectedOccurrence);
+                }
+
+                // 新しい選択を設定
+                selectedOccurrence = occurrence;
+                occurrence.isSelected = true;
+                rangeNavigatorProvider.refreshNode(occurrence);
+
                 // サイドバーからのナビゲーションフラグを設定
                 isNavigatingFromSidebar = true;
 
@@ -1331,6 +1389,11 @@ export function activate(context: vscode.ExtensionContext) {
     // エディタ変更イベント
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((editor) => {
+            if (selectedOccurrence) {
+                selectedOccurrence.isSelected = false;
+                rangeNavigatorProvider.refreshNode(selectedOccurrence);
+                selectedOccurrence = null;
+            }
             if (treeView.visible) {
                 if (editor && lastSearchedText) {
                     // 新しいエディタが開かれたとき、最後の検索テキストを使用
@@ -1703,6 +1766,12 @@ async function findOccurrencesInStructure(
 
 // クリア機能を実装する関数
 function clearSearch(rangeNavigatorProvider: RangeNavigatorProvider, editor?: vscode.TextEditor): void {
+    // 選択状態をリセット
+    if (selectedOccurrence) {
+        selectedOccurrence.isSelected = false;
+        rangeNavigatorProvider.refreshNode(selectedOccurrence);
+        selectedOccurrence = null;
+    }
     // 最後に検索したテキストをクリア
     lastSearchedText = '';
 
