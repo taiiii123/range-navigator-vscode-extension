@@ -361,67 +361,120 @@ class RangeNavigatorProvider implements vscode.TreeDataProvider<TreeNode> {
 // コードの構造（クラス、関数など）を解析する機能
 async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeStructureNode[]> {
     const structures: CodeStructureNode[] = [];
-
-    // 簡易的なパターンマッチング（より高度な解析にはパーサーライブラリ使用を推奨）
-	// クラス定義: Java, Python, C#, C++, Swift, Kotlin, Dart などに対応
-	const classPattern = /\bclass\s+(\w+)(?:\s+extends\s+\w+|\s*:\s*\w+)?/g;
-
-	// 関数定義: JavaScript, Python, PHP, Go, Rust, Swift, Kotlin, Dart, Scala, Ruby など対応
-	const functionPattern = /\b(?:function|def|fn|func|fun)\s+(\w+)\s*\([^)]*\)/g;
-
-	// メソッド定義: アクセス修飾子やstaticを含むJava, C#, TypeScript, Dartなどに対応
-	const methodPattern = /\b(?:public|private|protected|internal)?\s*(?:static\s+)?(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{/g;
-
     const text = document.getText();
-    let match;
+
+    // ファイル拡張子を取得して言語を特定
+    const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
+
+    // 様々な言語のクラス定義に対応するパターン
+    const classPattern = /\b(?:class|struct|interface|trait|enum|record)\s+(\w+)(?:\s+(?:extends|implements|:|<|inherits|with)\s+[\w\s,<>]+)?/g;
+
+    // 様々な言語の関数定義に対応するパターン
+    const functionPattern = /\b(?:function|func|fn|def|sub|procedure|proc|method|fun|public|private|protected|static|async)\s+(\w+)\s*\([^)]*\)/g;
+
+    // 様々な言語のメソッド定義に対応するパターン
+    const methodPattern = /(?:\b(?:public|private|protected|internal|final|override|virtual|static|async)(?:\s+|\s+\w+\s+))?(\w+)\s*\([^)]*\)\s*(?::\s*[\w<>[\],\s]+\s*)?(?:{\s*|=>|throws|is|as|->)/g;
+
+    // Python特有のインデントベースのブロック定義パターン
+    const pythonDefPattern = /\bdef\s+(\w+)\s*\([^)]*\):/g;
+    const pythonClassPattern = /\bclass\s+(\w+)(?:\([\w\s,]+\))?:/g;
+
+    // 言語ごとの特殊処理を適用
+    if (['py', 'pyw'].includes(fileExtension)) {
+        // Pythonファイルの特殊処理
+        return await parsePythonStructure(document, text);
+    }
 
     // クラスを検索
+    let match;
     while ((match = classPattern.exec(text)) !== null) {
+        const className = match[1];
         const startPos = document.positionAt(match.index);
-        // クラスの終了位置を簡易的に特定（実際には構文解析が必要）
-        const classEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
-        const endPos = classEndIndex !== -1 ? document.positionAt(classEndIndex) : document.positionAt(text.length);
+
+        // クラスの終了位置を特定（言語によって異なる可能性がある）
+        let classEndIndex;
+
+        // 括弧ベースの言語（Java, C#, JavaScript など）
+        classEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
+
+        const endPos = classEndIndex !== -1 ?
+            document.positionAt(classEndIndex) :
+            document.positionAt(text.length);
 
         const range = new vscode.Range(startPos, endPos);
-        structures.push(new CodeStructureNode(match[1], 'class', range, document));
+        const classNode = new CodeStructureNode(className, 'class', range, document);
+        structures.push(classNode);
+
+        // クラス本体のテキストを抽出して解析
+        const classBodyText = text.substring(
+            document.offsetAt(startPos),
+            document.offsetAt(endPos)
+        );
+
+        // メソッドをクラス内で検索
+        const methodRegex = new RegExp(methodPattern);
+        let methodMatch;
+
+        // クラス本体内でのオフセットを計算するための基準値
+        const classBodyOffset = document.offsetAt(startPos);
+
+        while ((methodMatch = methodRegex.exec(classBodyText)) !== null) {
+            const methodName = methodMatch[1];
+
+            // メソッド名がconstructorでない場合のみ処理（コンストラクタは特別扱い）
+            // 各言語固有のコンストラクタ名をチェック
+            const constructorNames = ['constructor', '__init__', '__construct', 'New', 'init'];
+            if (!constructorNames.includes(methodName)) {
+                // クラス内でのメソッドの位置を計算
+                const methodStartOffset = classBodyOffset + methodMatch.index;
+                const methodStartPos = document.positionAt(methodStartOffset);
+
+                // メソッドの終了位置を特定
+                const methodEndIndex = findMatchingBrace(text, methodStartOffset);
+                const methodEndPos = methodEndIndex !== -1 ?
+                    document.positionAt(methodEndIndex) :
+                    document.positionAt(text.length);
+
+                const methodRange = new vscode.Range(methodStartPos, methodEndPos);
+                const methodNode = new CodeStructureNode(
+                    methodName,
+                    'method',
+                    methodRange,
+                    document
+                );
+
+                // メソッドをクラスの子ノードとして追加
+                classNode.addChild(methodNode);
+            }
+        }
     }
 
-    // 関数を検索
+    // 独立した関数を検索（クラス外の関数）
     while ((match = functionPattern.exec(text)) !== null) {
+        const functionName = match[1];
         const startPos = document.positionAt(match.index);
-        const funcEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
-        const endPos = funcEndIndex !== -1 ? document.positionAt(funcEndIndex) : document.positionAt(text.length);
 
-        const range = new vscode.Range(startPos, endPos);
-        structures.push(new CodeStructureNode(match[1], 'function', range, document));
-    }
-
-    // メソッドを検索（簡易的な実装）
-    while ((match = methodPattern.exec(text)) !== null) {
-        // クラス内のメソッドか確認（簡易的）
-        let isClassMethod = false;
-        let parentClass: CodeStructureNode | undefined;
-
+        // 関数がクラス内にあるかチェック
+        let isInsideClass = false;
         for (const structure of structures) {
-            if (structure.type === 'class' &&
-                structure.range.contains(document.positionAt(match.index))) {
-                isClassMethod = true;
-                parentClass = structure;
+            if (structure.type === 'class' && structure.range.contains(startPos)) {
+                isInsideClass = true;
                 break;
             }
         }
 
-        if (isClassMethod && parentClass) {
-            const startPos = document.positionAt(match.index);
-            const methodEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
-            const endPos = methodEndIndex !== -1 ? document.positionAt(methodEndIndex) : document.positionAt(text.length);
-
-            const range = new vscode.Range(startPos, endPos);
-            const methodNode = new CodeStructureNode(match[1], 'method', range, document);
-
-            // メソッドをクラスの子ノードとして追加
-            parentClass.addChild(methodNode);
+        // クラス内の関数は既にメソッドとして処理されているためスキップ
+        if (isInsideClass) {
+            continue;
         }
+
+        const funcEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
+        const endPos = funcEndIndex !== -1 ?
+            document.positionAt(funcEndIndex) :
+            document.positionAt(text.length);
+
+        const range = new vscode.Range(startPos, endPos);
+        structures.push(new CodeStructureNode(functionName, 'function', range, document));
     }
 
     return structures;
@@ -429,18 +482,33 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
 
 // 対応する閉じ括弧を見つける簡易的な関数
 function findMatchingBrace(text: string, startOffset: number): number {
-    let braceCount = 0;
-    let inBraces = false;
-
+    // 開始括弧を見つける
+    let openBracePos = -1;
     for (let i = startOffset; i < text.length; i++) {
+        if (text[i] === '{') {
+            openBracePos = i;
+            break;
+        } else if (text[i] === ';') {
+            // セミコロンで終わる言語（特に宣言のみの場合）はここで終了
+            return i + 1;
+        }
+    }
+
+    // 開始括弧が見つからなかった場合
+    if (openBracePos === -1) {
+        return -1;
+    }
+
+    // 対応する閉じ括弧を探す
+    let braceCount = 1;
+    for (let i = openBracePos + 1; i < text.length; i++) {
         const char = text[i];
 
         if (char === '{') {
             braceCount++;
-            inBraces = true;
         } else if (char === '}') {
             braceCount--;
-            if (inBraces && braceCount === 0) {
+            if (braceCount === 0) {
                 return i + 1; // 閉じ括弧の次の位置
             }
         }
@@ -448,6 +516,259 @@ function findMatchingBrace(text: string, startOffset: number): number {
 
     return -1; // 対応する閉じ括弧が見つからない
 }
+
+// Python特有のインデントベースの構造を解析する
+async function parsePythonStructure(document: vscode.TextDocument, text: string): Promise<CodeStructureNode[]> {
+    const structures: CodeStructureNode[] = [];
+    const lines = text.split("\n");
+
+    // Pythonのクラスパターンとメソッドパターン
+    const classPattern = /^\s*class\s+(\w+)(?:\([\w\s,]+\))?:/;
+    const methodPattern = /^\s*def\s+(\w+)\s*\([^)]*\):/;
+    const functionPattern = /^\s*def\s+(\w+)\s*\([^)]*\):/;
+
+    // インデントとノード情報を格納する配列
+    type NodeInfo = {
+        node: CodeStructureNode;
+        indentLevel: number;
+        startLine: number;
+        parent?: NodeInfo;
+        children: NodeInfo[];
+    };
+
+    const nodeInfos: NodeInfo[] = [];
+    const rootNodes: NodeInfo[] = [];
+
+    // スタック（現在のインデントコンテキスト）
+    // [インデントレベル, 親ノード情報]
+    let currentContext: [number, NodeInfo | undefined] = [0, undefined];
+
+    // 1回目のパス: ノード構造を構築
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // 空行やコメント行はスキップ
+        if (line.trim() === '' || line.trim().startsWith('#')) {
+            continue;
+        }
+
+        // インデントレベルを計算
+        const indentMatch = line.match(/^(\s*)/);
+        const indentLevel = indentMatch ? indentMatch[1].length : 0;
+
+        // 現在のコンテキストよりインデントが少ない場合、前のコンテキストに戻る
+        if (indentLevel < currentContext[0]) {
+            // 親ノードを探す
+            let parent = currentContext[1]?.parent;
+            while (parent && parent.indentLevel >= indentLevel) {
+                parent = parent.parent;
+            }
+
+            currentContext = [indentLevel, parent];
+        }
+
+        // クラス定義
+        const classMatch = line.match(classPattern);
+        if (classMatch) {
+            const className = classMatch[1];
+            const startPos = new vscode.Position(i, 0);
+            // 仮の終了位置（後で更新）
+            const endPos = new vscode.Position(i + 1, 0);
+
+            const classNode = new CodeStructureNode(
+                className,
+                'class',
+                new vscode.Range(startPos, endPos),
+                document
+            );
+
+            const nodeInfo: NodeInfo = {
+                node: classNode,
+                indentLevel: indentLevel,
+                startLine: i,
+                parent: currentContext[1],
+                children: []
+            };
+
+            // 親がある場合は子として追加
+            if (currentContext[1]) {
+                currentContext[1].children.push(nodeInfo);
+            } else {
+                // ルートノードとして追加
+                rootNodes.push(nodeInfo);
+            }
+
+            nodeInfos.push(nodeInfo);
+            // 新しいコンテキストに切り替え
+            currentContext = [indentLevel, nodeInfo];
+            continue;
+        }
+
+        // メソッド定義
+        const methodMatch = line.match(methodPattern);
+        if (methodMatch && currentContext[1] && currentContext[1].node.type === 'class') {
+            // クラスコンテキスト内の場合はメソッド
+            const methodName = methodMatch[1];
+            const startPos = new vscode.Position(i, 0);
+            // 仮の終了位置
+            const endPos = new vscode.Position(i + 1, 0);
+
+            const methodNode = new CodeStructureNode(
+                methodName,
+                'method',
+                new vscode.Range(startPos, endPos),
+                document
+            );
+
+            const nodeInfo: NodeInfo = {
+                node: methodNode,
+                indentLevel: indentLevel,
+                startLine: i,
+                parent: currentContext[1],
+                children: []
+            };
+
+            currentContext[1].children.push(nodeInfo);
+            nodeInfos.push(nodeInfo);
+
+            // 新しいコンテキストに切り替え
+            currentContext = [indentLevel, nodeInfo];
+            continue;
+        }
+
+        // クラス外の関数定義
+        const functionMatch = line.match(functionPattern);
+        if (functionMatch && (!currentContext[1] || currentContext[1].node.type !== 'class')) {
+            // クラスコンテキスト外の場合は関数
+            const functionName = functionMatch[1];
+            const startPos = new vscode.Position(i, 0);
+            // 仮の終了位置
+            const endPos = new vscode.Position(i + 1, 0);
+
+            const functionNode = new CodeStructureNode(
+                functionName,
+                'function',
+                new vscode.Range(startPos, endPos),
+                document
+            );
+
+            const nodeInfo: NodeInfo = {
+                node: functionNode,
+                indentLevel: indentLevel,
+                startLine: i,
+                parent: currentContext[1],
+                children: []
+            };
+
+            // 親がある場合は子として追加
+            if (currentContext[1]) {
+                currentContext[1].children.push(nodeInfo);
+            } else {
+                // ルートノードとして追加
+                rootNodes.push(nodeInfo);
+            }
+
+            nodeInfos.push(nodeInfo);
+
+            // 新しいコンテキストに切り替え
+            currentContext = [indentLevel, nodeInfo];
+        }
+    }
+
+    // 2回目のパス: 終了位置を計算して実際のノード階層を構築
+    for (let i = 0; i < nodeInfos.length; i++) {
+        const nodeInfo = nodeInfos[i];
+        const nextNodeWithLessIndent = nodeInfos.slice(i + 1).find(n => n.indentLevel <= nodeInfo.indentLevel);
+
+        let endLine: number;
+        if (nextNodeWithLessIndent) {
+            // 次のより浅いインデントのノードまで
+            endLine = nextNodeWithLessIndent.startLine - 1;
+        } else {
+            // ファイルの終わりまで
+            endLine = lines.length - 1;
+        }
+
+        // 新しいインスタンスを作成（range読み取り専用対策）
+        const newNode = new CodeStructureNode(
+            nodeInfo.node.name,
+            nodeInfo.node.type,
+            new vscode.Range(
+                nodeInfo.node.range.start,
+                new vscode.Position(endLine + 1, 0)
+            ),
+            document
+        );
+
+        // 子ノードの追加
+        for (const childInfo of nodeInfo.children) {
+            // 先に子ノードからツリーを構築（後順トラバース）
+            const index = nodeInfos.indexOf(childInfo);
+            if (index > i) {
+                // まだ処理していない子ノードの場合はスキップ
+                continue;
+            }
+
+            // 子ノードを追加
+            newNode.addChild(childInfo.node);
+        }
+
+        // 親ノードに追加
+        if (nodeInfo.parent) {
+            // 親ノードが既に処理済みで更新されている場合
+            const parentIndex = nodeInfos.indexOf(nodeInfo.parent);
+            if (parentIndex < i) {
+                // 親を探してnodeInfosから削除
+                const rootIndex = rootNodes.indexOf(nodeInfo.parent);
+                if (rootIndex >= 0) {
+                    structures.push(newNode);
+                } else {
+                    // 処理済みのノードを探す
+                    for (const structure of structures) {
+                        if (addToParentIfFound(structure, nodeInfo.parent.node.name, newNode)) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            // ルートノード
+            structures.push(newNode);
+        }
+
+        // 古いノードを新しいノードで置き換え
+        nodeInfo.node = newNode;
+    }
+
+    // 最終的なルートノードの構築
+    const finalStructures: CodeStructureNode[] = [];
+
+    for (const nodeInfo of rootNodes) {
+        // 最新のノードを使用
+        finalStructures.push(nodeInfo.node);
+    }
+
+    return finalStructures;
+}
+
+// 親ノードを探して子ノードを追加するヘルパー関数
+function addToParentIfFound(node: CodeStructureNode, parentName: string, childNode: CodeStructureNode): boolean {
+    if (node.name === parentName) {
+        node.addChild(childNode);
+        return true;
+    }
+
+    for (const child of node.children) {
+        if (child instanceof CodeStructureNode) {
+            if (addToParentIfFound(child, parentName, childNode)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 
 // 検索結果をコード構造と関連付ける
 function organizeOccurrencesByStructure(
@@ -491,39 +812,49 @@ function organizeOccurrencesByStructure(
 
     let hasUncategorized = false;
 
-    // 各出現箇所を適切な構造に割り当て
+    // 各出現箇所に関連付け情報を追加
     for (const occurrence of occurrences) {
         const position = occurrence.position;
         let matched = false;
 
-        // 出現箇所がどの構造に属するか確認
+        // 出現箇所が属する最も詳細な構造を見つける（メソッド優先）
         for (let i = 0; i < structures.length; i++) {
             const structure = structures[i];
 
             if (structure.range.contains(position)) {
-                // 該当する構造のノードに追加
-                rootNodes[i].addChild(occurrence);
-                matched = true;
-                break;
-            }
+                // クラス内のメソッドをチェック
+                let methodMatched = false;
+                if (structure.type === 'class') {
+                    for (let j = 0; j < structure.children.length; j++) {
+                        const method = structure.children[j];
+                        if (method instanceof CodeStructureNode &&
+                            method.type === 'method' &&
+                            method.range.contains(position)) {
 
-            // ネストされたメソッドを確認
-            for (let j = 0; j < structure.children.length; j++) {
-                const child = structure.children[j];
-                if (child instanceof CodeStructureNode && child.range.contains(position)) {
-                    // ツリー内の対応するノードを検索して追加
-                    const parentNode = rootNodes[i];
-                    if (parentNode && parentNode.children[j]) {
-                        parentNode.children[j].addChild(occurrence);
-                        matched = true;
-                        break;
+                            // メソッド内の検索結果として追加
+                            const treeMethodNode = rootNodes[i].children.find(
+                                node => node instanceof CodeStructureNode &&
+                                      node.name === method.name
+                            );
+
+                            if (treeMethodNode) {
+                                treeMethodNode.addChild(occurrence);
+                                methodMatched = true;
+                                matched = true;
+                                break;
+                            }
+                        }
                     }
                 }
-            }
 
-            if (matched) {
+                // メソッド内で見つからなかった場合はクラスまたは関数直下に追加
+                if (!methodMatched) {
+                    rootNodes[i].addChild(occurrence);
+                    matched = true;
+                }
+
                 break;
-            };
+            }
         }
 
         // どの構造にも属さない場合は「その他」に分類
@@ -533,8 +864,24 @@ function organizeOccurrencesByStructure(
         }
     }
 
-    // 子ノードを持たない構造ノードを削除
-    const filteredRootNodes = rootNodes.filter(node => node.children.length > 0);
+    // 検索結果を持たない構造を削除（階層的に処理）
+
+    // 1. まずメソッドレベルで検索結果がないものを削除
+    for (const rootNode of rootNodes) {
+        // 検索結果を含むメソッドだけを残す
+        rootNode.children = rootNode.children.filter(child => {
+            if (child instanceof CodeStructureNode) {
+                return child.children.length > 0;
+            }
+            return true; // 検索結果自体は常に残す
+        });
+    }
+
+    // 2. 次にクラス/関数レベルで検索結果がないものを削除
+    const filteredRootNodes = rootNodes.filter(node => {
+        // 直接の検索結果または有効な子ノードがある場合のみ残す
+        return node.children.length > 0;
+    });
 
     // 検索件数をラベルに反映
     for (const node of filteredRootNodes) {
@@ -550,11 +897,10 @@ function organizeOccurrencesByStructure(
         }
     }
 
-    // 未分類の出現箇所があれば追加とカウント表示
+    // 未分類の出現箇所があれば追加
     if (hasUncategorized) {
         // 未分類ノードのラベルを更新
         uncategorizedNode.label = l10n.t('📍 Other Occurrences ({0})', uncategorizedNode.children.length);
-
         filteredRootNodes.push(uncategorizedNode);
     }
 
