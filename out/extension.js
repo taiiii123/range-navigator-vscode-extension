@@ -48,6 +48,9 @@ let hasShownWelcomeMessage = false;
 let searchHistory = [];
 // 検索履歴表示モードかどうかのフラグ
 let isSearchHistoryMode = false;
+// 現在のハイライト範囲を記録するグローバル変数と、そのハイライトのテキスト内容を保存
+let currentHighlightRange = null;
+let currentHighlightLineContent = null;
 // 履歴用のクラス
 class HistoryItem {
     searchText;
@@ -555,44 +558,52 @@ function activate(context) {
             // ドキュメントを開く
             const editor = await vscode_1.default.window.showTextDocument(docUri);
             const document = editor.document;
-            // 行の現在のテキストを取得
-            const currentLineText = document.lineAt(lineNumber).text;
-            // 検索テキストが現在の行に含まれているか確認
-            if (currentLineText.includes(searchText)) {
-                // 検索テキストの現在の位置を探す
-                const currentIndex = currentLineText.indexOf(searchText);
-                const currentPosition = new vscode_1.default.Position(lineNumber, currentIndex);
-                const selectionEnd = new vscode_1.default.Position(lineNumber, currentIndex + searchTextLength);
-                // 検索テキストを選択
-                editor.selection = new vscode_1.default.Selection(currentPosition, selectionEnd);
-                // 見やすいようにスクロール位置を調整
-                editor.revealRange(new vscode_1.default.Range(currentPosition, selectionEnd), vscode_1.default.TextEditorRevealType.InCenter);
-                // 行ハイライトを適用
-                const lineRange = new vscode_1.default.Range(lineNumber, 0, lineNumber, currentLineText.length);
-                setTimeout(() => {
-                    highlightSelectedLine(editor, lineRange);
+            // 行番号が有効かチェック
+            if (lineNumber >= 0 && lineNumber < document.lineCount) {
+                // 行の現在のテキストを取得
+                const currentLineText = document.lineAt(lineNumber).text;
+                // 検索テキストが現在の行に含まれているか確認
+                if (currentLineText.includes(searchText)) {
+                    // 検索テキストの現在の位置を探す
+                    const currentIndex = currentLineText.indexOf(searchText);
+                    const currentPosition = new vscode_1.default.Position(lineNumber, currentIndex);
+                    const selectionEnd = new vscode_1.default.Position(lineNumber, currentIndex + searchTextLength);
+                    // 検索テキストを選択
+                    editor.selection = new vscode_1.default.Selection(currentPosition, selectionEnd);
+                    // 見やすいようにスクロール位置を調整
+                    editor.revealRange(new vscode_1.default.Range(currentPosition, selectionEnd), vscode_1.default.TextEditorRevealType.InCenter);
+                    // 行ハイライトを適用
+                    const lineRange = new vscode_1.default.Range(lineNumber, 0, lineNumber, currentLineText.length);
+                    setTimeout(() => {
+                        highlightSelectedLine(editor, lineRange);
+                        // 操作完了後にフラグをリセット
+                        setTimeout(() => {
+                            isNavigatingFromSidebar = false;
+                        }, 300);
+                    }, 100);
+                    // 最後に検索したテキストを更新
+                    lastSearchedText = searchText;
+                }
+                else {
+                    // 検索テキストが行にない場合はカーソル位置だけ移動
+                    const linePosition = new vscode_1.default.Position(lineNumber, 0);
+                    editor.selection = new vscode_1.default.Selection(linePosition, linePosition);
+                    // 見やすいようにスクロール位置を調整
+                    editor.revealRange(new vscode_1.default.Range(linePosition, linePosition), vscode_1.default.TextEditorRevealType.InCenter);
+                    // ハイライトは行わないが、最後に検索したテキストを更新
+                    lastSearchedText = searchText;
                     // 操作完了後にフラグをリセット
                     setTimeout(() => {
                         isNavigatingFromSidebar = false;
                     }, 300);
-                }, 100);
-                // 最後に検索したテキストを更新
-                lastSearchedText = searchText;
+                    // 検索テキストが見つからない旨をメッセージ表示
+                    vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('検索テキスト "{0}" は現在の行に含まれていません。', searchText));
+                }
             }
             else {
-                // 検索テキストが行にない場合はカーソル位置だけ移動
-                const linePosition = new vscode_1.default.Position(lineNumber, 0);
-                editor.selection = new vscode_1.default.Selection(linePosition, linePosition);
-                // 見やすいようにスクロール位置を調整
-                editor.revealRange(new vscode_1.default.Range(linePosition, linePosition), vscode_1.default.TextEditorRevealType.InCenter);
-                // ハイライトは行わないが、最後に検索したテキストを更新
-                lastSearchedText = searchText;
-                // 操作完了後にフラグをリセット
-                setTimeout(() => {
-                    isNavigatingFromSidebar = false;
-                }, 300);
-                // 検索テキストが見つからない旨をメッセージ表示
-                vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('検索テキスト "{0}" は現在の行に含まれていません。', searchText));
+                // 無効な行番号の場合
+                vscode_1.default.window.showWarningMessage(vscode_1.l10n.t('指定された行番号 ({0}) はドキュメントの範囲外です。', lineNumber + 1));
+                isNavigatingFromSidebar = false;
             }
         }
         catch (error) {
@@ -673,7 +684,10 @@ function activate(context) {
             editor.revealRange(new vscode_1.default.Range(position, selectionEnd), vscode_1.default.TextEditorRevealType.InCenter);
             // 行ハイライトを適用
             setTimeout(() => {
-                highlightSelectedLine(editor, range);
+                // 現在の行の最新の範囲を取得
+                const currentLine = editor.document.lineAt(position.line);
+                const updatedRange = new vscode_1.default.Range(position.line, 0, position.line, currentLine.text.length);
+                highlightSelectedLine(editor, updatedRange);
                 // 操作完了後にフラグをリセット
                 setTimeout(() => {
                     isNavigatingFromSidebar = false;
@@ -831,8 +845,49 @@ function activate(context) {
     // テキスト変更イベント - 文書が変更されたときの処理
     context.subscriptions.push(vscode_1.default.workspace.onDidChangeTextDocument((event) => {
         const editor = vscode_1.default.window.activeTextEditor;
-        if (editor && treeView.visible && event.document === editor.document && lastSearchedText) {
-            // 少し遅延させて検索結果を更新（連続変更時のパフォーマンス向上）
+        if (!editor || event.document !== editor.document) {
+            return;
+        }
+        // ハイライトが存在する場合の処理
+        if (currentHighlightRange !== null && currentHighlightLineContent !== null) {
+            const document = editor.document;
+            const originalLine = currentHighlightRange.start.line;
+            // ドキュメント全体をスキャンして、ハイライト行を探す
+            let foundLine = -1;
+            // まず元の行を確認
+            if (originalLine < document.lineCount) {
+                const lineText = document.lineAt(originalLine).text;
+                // 元の行のテキストが一致していれば、ハイライト位置を維持
+                if (lineText === currentHighlightLineContent) {
+                    foundLine = originalLine;
+                }
+            }
+            // 元の行のテキストが変わっている場合は、周辺行をスキャン
+            if (foundLine === -1) {
+                // 前後10行程度を調べる（範囲は調整可能）
+                const startLine = Math.max(0, originalLine - 10);
+                const endLine = Math.min(document.lineCount - 1, originalLine + 10);
+                for (let i = startLine; i <= endLine; i++) {
+                    if (document.lineAt(i).text === currentHighlightLineContent) {
+                        foundLine = i;
+                        break;
+                    }
+                }
+            }
+            // ハイライト行が見つかった場合は更新、見つからなかった場合はクリア
+            if (foundLine !== -1) {
+                const updatedRange = new vscode_1.default.Range(foundLine, 0, foundLine, document.lineAt(foundLine).text.length);
+                editor.setDecorations(highlightDecorationType, [updatedRange]);
+                currentHighlightRange = updatedRange;
+                // テキスト内容は変わっていないので更新不要
+            }
+            else {
+                // ハイライト行が見つからない（削除された）場合はクリア
+                clearHighlights(editor);
+            }
+        }
+        // 検索結果の更新処理（既存のコード）
+        if (treeView.visible && lastSearchedText) {
             setTimeout(() => {
                 findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
             }, 500);
@@ -917,12 +972,18 @@ async function expandAll(treeView, provider) {
 // ハイライトを消去する関数
 function clearHighlights(editor) {
     editor.setDecorations(highlightDecorationType, []);
+    // ハイライト情報をリセット
+    currentHighlightRange = null;
+    currentHighlightLineContent = null;
 }
 // 指定された行をハイライトする関数
 function highlightSelectedLine(editor, range) {
     clearHighlights(editor);
     editor.setDecorations(highlightDecorationType, [range]);
     console.log(`Highlighting line ${range.start.line + 1}`);
+    // 現在のハイライト範囲とその行の内容を保存
+    currentHighlightRange = range;
+    currentHighlightLineContent = editor.document.lineAt(range.start.line).text;
 }
 // 指定されたテキストの出現箇所をすべて検索し、コード構造と関連付ける
 function updateSearchContext(hasSearchText) {
