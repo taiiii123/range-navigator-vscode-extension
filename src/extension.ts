@@ -75,6 +75,8 @@ class SearchHistoryNode extends TreeNode {
 
 // 個々の検索履歴項目
 class SearchHistoryItemNode extends TreeNode {
+    private _isSelected: boolean = false;
+
     constructor(
         public readonly historyItem: HistoryItem
     ) {
@@ -83,7 +85,7 @@ class SearchHistoryItemNode extends TreeNode {
         const label = l10n.t('行 {0}: "{1}"', lineNumber, historyItem.searchText);
 
         super(label, vscode.TreeItemCollapsibleState.None);
-        this.iconPath = new vscode.ThemeIcon("search");
+        this.updateIcon();
         this.tooltip = historyItem.occurrenceInfo.lineText.trim();
         this.contextValue = 'searchHistoryItem';
 
@@ -91,11 +93,38 @@ class SearchHistoryItemNode extends TreeNode {
         this.command = {
             title: "Go to Line",
             command: "rangeNavigator.gotoHistoryLine",
-            arguments: [historyItem]
+            arguments: [historyItem, this]
         };
     }
-}
 
+    // 選択状態を設定するメソッド
+    public set isSelected(value: boolean) {
+        this._isSelected = value;
+        this.updateIcon();
+        this.updateLabel();
+    }
+
+    // 選択状態を取得するメソッド
+    public get isSelected(): boolean {
+        return this._isSelected;
+    }
+
+    // アイコンを更新するメソッド
+    private updateIcon() {
+        if (this._isSelected) {
+            this.iconPath = new vscode.ThemeIcon("check", new vscode.ThemeColor("terminal.ansiGreen"));
+        } else {
+            this.iconPath = new vscode.ThemeIcon("search");
+        }
+    }
+
+    // ラベルを更新するメソッド
+    private updateLabel() {
+        const lineNumber = this.historyItem.occurrenceInfo.lineNumber + 1;
+        const marker = this._isSelected ? '➤ ' : '';
+        this.label = `${marker}${l10n.t('行 {0}: "{1}"', lineNumber, this.historyItem.searchText)}`;
+    }
+}
 // ウェルカムメッセージノード
 class WelcomeMessageNode extends TreeNode {
     constructor() {
@@ -1134,6 +1163,10 @@ export function activate(context: vscode.ExtensionContext) {
     // 検索履歴を表示するコマンド
     context.subscriptions.push(
         vscode.commands.registerCommand('range-navigator.showSearchHistory', () => {
+            // 現在の選択状態を保存（モード切替前に保存することが重要）
+            const currentSelection = selectedOccurrence;
+
+            // モードを切り替え
             isSearchHistoryMode = !isSearchHistoryMode;
 
             // コンテキスト変数を設定してUI表示を切り替え
@@ -1141,14 +1174,23 @@ export function activate(context: vscode.ExtensionContext) {
 
             // 検索履歴モードに応じてツリービューを更新
             if (isSearchHistoryMode) {
+                // 履歴モードに切り替える際は一時的に選択状態を解除するが、変数自体は保持
+                if (selectedOccurrence) {
+                    // 選択状態を視覚的に解除するだけ
+                    selectedOccurrence.isSelected = false;
+                    rangeNavigatorProvider.refreshNode(selectedOccurrence);
+                    // ここで selectedOccurrence 自体は null にしない
+                }
+
                 // 検索履歴のみを表示
                 showSearchHistoryOnly(rangeNavigatorProvider);
             } else {
-                // 通常表示に戻す
+                // 通常モードに戻す際は以前の選択状態を復元
                 if (lastSearchedText) {
                     const editor = vscode.window.activeTextEditor;
                     if (editor) {
-                        findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
+                        // 保存しておいた選択状態を使用して検索結果を表示
+                        findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider, currentSelection);
                     }
                 } else {
                     rangeNavigatorProvider.showWelcomeMessage();
@@ -1578,9 +1620,13 @@ function showSearchHistoryOnly(provider: RangeNavigatorProvider): void {
     // 検索履歴ノードのみを表示
     const historyNode = new SearchHistoryNode();
 
-    // 検索履歴を更新
+    // 検索履歴を更新（選択状態を常に非選択に設定）
     for (const item of searchHistory) {
         const historyItem = new SearchHistoryItemNode(item);
+
+        // 明示的に選択状態をfalseに設定する
+        historyItem.isSelected = false;
+
         historyNode.addChild(historyItem);
     }
 
@@ -1639,7 +1685,8 @@ function updateSearchContext(hasSearchText: boolean): void {
 async function findOccurrencesInStructure(
     editor: vscode.TextEditor,
     searchText: string,
-    provider: RangeNavigatorProvider
+    provider: RangeNavigatorProvider,
+    prevSelection: TextOccurrence | null = null // 引数追加
 ): Promise<void> {
     const document = editor.document;
     const results: TextOccurrence[] = [];
@@ -1756,12 +1803,48 @@ async function findOccurrencesInStructure(
         // 結果をコード構造と関連付ける
         const organizedResults = organizeOccurrencesByStructure(results, codeStructures, document);
 
+        // 以前の選択状態を復元する処理を追加
+        if (prevSelection) {
+            // 前の選択に一致する新しいノードを探す
+            restoreSelection(organizedResults, prevSelection);
+        }
+
         // 検索結果をプロバイダーに通知
         provider.refresh(organizedResults);
     } catch (error) {
         console.error("Error in findOccurrencesInStructure:", error);
         vscode.window.showErrorMessage(`Error finding occurrences: ${error}`);
     }
+}
+
+// 選択状態を復元するためのヘルパー関数
+function restoreSelection(nodes: TreeNode[], prevSelection: TextOccurrence): boolean {
+    // prevSelection が null の場合は早期リターン
+    if (!prevSelection) {
+        return false;
+    }
+
+    for (const node of nodes) {
+        // TextOccurrence ノードの場合
+        if (node instanceof TextOccurrence) {
+            if (node.lineNumber === prevSelection.lineNumber &&
+                node.startIndex === prevSelection.startIndex) {
+                // 選択状態を復元
+                node.isSelected = true;
+                selectedOccurrence = node;
+                return true;
+            }
+        }
+
+        // 子ノードに対して再帰的に処理
+        if (node.children && node.children.length > 0) {
+            if (restoreSelection(node.children, prevSelection)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // クリア機能を実装する関数
