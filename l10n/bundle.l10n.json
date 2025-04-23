@@ -12,6 +12,11 @@
     "Search for text in the current document": "Search for text in the current document",
     "No active editor found.": "No active editor found.",
     "Line {0}: ": "Line {0}: ",
+    "The search text {0} is not found in the current line.": "The search text {0} is not found in the current line.",
+    "The specified line number ({0}) is outside the document range.": "The specified line number ({0}) is outside the document range.",
+    "Error navigating to history line.": "Error navigating to history line.",
+    "Search history has been cleared.": "Search history has been cleared.",
+    "No history available.": "No history available.",
 
     "Welcome to Range Navigator! 🔍": "Welcome to Range Navigator! 🔍",
     "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator helps you find and visualize occurrences of selected text in your code.",
@@ -19,5 +24,8 @@
     "1. Select text in the editor": "1. Select text in the editor",
     "2. All occurrences will be shown here": "2. All occurrences will be shown here",
     "3. Click on an item to navigate to it": "3. Click on an item to navigate to it",
-    "4. Selected occurrences are highlighted": "4. Selected occurrences are highlighted"
+    "4. Selected occurrences are highlighted": "4. Selected occurrences are highlighted",
+
+    "Line Search History": "Line Search History",
+    "View and reuse past searches": "View and reuse past searches"
 }

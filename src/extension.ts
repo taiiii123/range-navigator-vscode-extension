@@ -64,11 +64,11 @@ class TreeNode extends vscode.TreeItem {
 // 検索履歴の表示用ノード
 class SearchHistoryNode extends TreeNode {
     constructor() {
-        const historyTitle = l10n.t('検索履歴:');
+        const historyTitle = l10n.t('Line Search History');
 
         super(historyTitle, vscode.TreeItemCollapsibleState.Collapsed);
         this.iconPath = new vscode.ThemeIcon("history");
-        this.tooltip = l10n.t('過去の検索を表示して再利用');
+        this.tooltip = l10n.t('View and reuse past searches');
         this.contextValue = 'searchHistoryRoot';
     }
 }
@@ -99,7 +99,7 @@ class SearchHistoryItemNode extends TreeNode {
         );
 
         // 行番号プレフィックス
-        const linePrefix = l10n.t('行 {0}: ', lineNumber);
+        const linePrefix = l10n.t('Line {0}: ', lineNumber);
 
         // 完全なテキストを構築
         const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
@@ -380,7 +380,7 @@ class TextOccurrence extends TreeNode {
     // ラベルを更新するメソッド
     private updateLabel() {
         // 行番号プレフィックス
-        let linePrefix = l10n.t('行 {0}: ', this.lineNumber + 1);
+        let linePrefix = l10n.t('Line {0}: ', this.lineNumber + 1);
 
         // 選択中の場合、特別なマーカーを追加
         const marker = this._isSelected ? '➤ ' : '';
@@ -1234,19 +1234,19 @@ export function activate(context: vscode.ExtensionContext) {
 
                             // 検索テキストが見つからない旨をメッセージ表示
                             vscode.window.showInformationMessage(
-                                l10n.t('検索テキスト "{0}" は現在の行に含まれていません。', searchText)
+                                l10n.t('The search text {0} is not found in the current line.', searchText)
                             );
                         }
                     } else {
                         // 無効な行番号の場合
                         vscode.window.showWarningMessage(
-                            l10n.t('指定された行番号 ({0}) はドキュメントの範囲外です。', lineNumber + 1)
+                            l10n.t('The specified line number ({0}) is outside the document range.', lineNumber + 1)
                         );
                         isNavigatingFromSidebar = false;
                     }
                 } catch (error) {
                     console.error("Error navigating to history line:", error);
-                    vscode.window.showErrorMessage(l10n.t('履歴行への移動中にエラーが発生しました。'));
+                    vscode.window.showErrorMessage(l10n.t('Error navigating to history line.'));
                     isNavigatingFromSidebar = false;
                 }
             }
@@ -1300,7 +1300,7 @@ export function activate(context: vscode.ExtensionContext) {
             async (searchText: string) => {
                 const editor = vscode.window.activeTextEditor;
                 if (!editor) {
-                    return vscode.window.showWarningMessage(l10n.t('アクティブなエディタが見つかりません。'));
+                    return vscode.window.showWarningMessage(l10n.t('No active editor found.'));
                 }
 
                 // 検索履歴モードを解除
@@ -1339,7 +1339,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            vscode.window.showInformationMessage(l10n.t('検索履歴をクリアしました。'));
+            vscode.window.showInformationMessage(l10n.t('Search history has been cleared.'));
         })
     );
 
@@ -1799,7 +1799,7 @@ function showSearchHistoryOnly(provider: RangeNavigatorProvider): void {
     // 検索履歴がない場合の表示
     if (searchHistory.length === 0) {
         const emptyNode = new TreeNode(
-            l10n.t('履歴がありません'),
+            l10n.t('No history available.'),
             vscode.TreeItemCollapsibleState.None
         );
         emptyNode.iconPath = new vscode.ThemeIcon("info");
@@ -1815,7 +1815,7 @@ function showSearchHistoryOnly(provider: RangeNavigatorProvider): void {
     }
 
     // 見出し表示を変更
-    historyNode.label = l10n.t('検索履歴');
+    historyNode.label = l10n.t('Line Search History');
 
     // 検索履歴を常に展開表示
     historyNode.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;

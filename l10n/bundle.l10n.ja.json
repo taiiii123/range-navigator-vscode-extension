@@ -12,6 +12,11 @@
     "Search for text in the current document": "現在のドキュメント内でテキストを検索",
     "No active editor found.": "アクティブなエディタが見つかりません。",
     "Line {0}: ": "{0} 行目: ",
+    "The search text {0} is not found in the current line.": "検索テキスト {0} は現在の行に含まれていません。",
+    "The specified line number ({0}) is outside the document range.": "指定された行番号 ({0}) はドキュメントの範囲外です。",
+    "Error navigating to history line.": "履歴行への移動中にエラーが発生しました。",
+    "Search history has been cleared.": "検索履歴をクリアしました。",
+    "No history available.": "履歴がありません",
 
     "Welcome to Range Navigator! 🔍": "Range Navigator へようこそ！ 🔍",
     "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator は選択したテキストの出現箇所を検索して視覚化するのに役立ちます。",
@@ -19,5 +24,8 @@
     "1. Select text in the editor": "1. エディタでテキストを選択",
     "2. All occurrences will be shown here": "2. すべての出現箇所がここに表示されます",
     "3. Click on an item to navigate to it": "3. 項目をクリックして該当箇所に移動",
-    "4. Selected occurrences are highlighted": "4. 選択箇所がハイライト表示されます"
+    "4. Selected occurrences are highlighted": "4. 選択箇所がハイライト表示されます",
+
+    "Line Search History": "選択行の検索履歴",
+    "View and reuse past searches": "過去の検索を表示して再利用"
 }

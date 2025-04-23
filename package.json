@@ -54,7 +54,7 @@
             "default": 10,
             "minimum": 1,
             "maximum": 50,
-            "description": "保存する検索履歴の最大数"
+            "description": "%extension.rangeNavigator.history.maxSize.description%"
         }
       }
     },
@@ -86,15 +86,16 @@
       },
       {
         "command": "range-navigator.clearHistory",
-        "title": "Range Navigator: 検索履歴をクリア"
+        "title": "%extension.rangeNavigator.clearHistory%"
       },
       {
         "command": "range-navigator.showSearchHistory",
-        "title": "検索履歴を表示",
+        "title": "%extension.rangeNavigator.showSearchHistory%",
         "category": "Range Navigator",
         "icon": "$(history)"
       }
-    ],"menus": {
+    ],
+    "menus": {
       "view/title": [
         {
           "command": "range-navigator.expandAll",

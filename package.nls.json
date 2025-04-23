@@ -3,9 +3,12 @@
     "extension.rangeNavigator.highlight.backgroundColor.description": "Specifies the background color used to highlight the line selected after clicking on a search result in the sidebar.",
     "extension.rangeNavigator.highlight.borderColor.description": "Specifies the border color used to highlight the line selected after clicking on a search result in the sidebar.",
     "extension.rangeNavigator.enableNavigationOnClick": "Enable navigation to definition when clicking on class, function, or method names in the sidebar",
+    "extension.rangeNavigator.history.maxSize.description": "Maximum number of search histories to save",
     "extension.rangeNavigator.findOccurrences": "Find Occurrences",
     "extension.rangeNavigator.expandAll": "➕ Expand All",
     "extension.rangeNavigator.collapseAll": "➖ Collapse All",
     "extension.rangeNavigator.clearSearch": "Clear Search",
-    "extension.rangeNavigator.copyMessage": "Copy Message"
+    "extension.rangeNavigator.copyMessage": "Copy Message",
+    "extension.rangeNavigator.clearHistory": "Clear search history",
+    "extension.rangeNavigator.showSearchHistory": "Display search history"
 }

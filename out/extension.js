@@ -78,10 +78,10 @@ class TreeNode extends vscode_1.default.TreeItem {
 // 検索履歴の表示用ノード
 class SearchHistoryNode extends TreeNode {
     constructor() {
-        const historyTitle = vscode_1.l10n.t('検索履歴:');
+        const historyTitle = vscode_1.l10n.t('Line Search History');
         super(historyTitle, vscode_1.default.TreeItemCollapsibleState.Collapsed);
         this.iconPath = new vscode_1.default.ThemeIcon("history");
-        this.tooltip = vscode_1.l10n.t('過去の検索を表示して再利用');
+        this.tooltip = vscode_1.l10n.t('View and reuse past searches');
         this.contextValue = 'searchHistoryRoot';
     }
 }
@@ -104,7 +104,7 @@ class SearchHistoryItemNode extends TreeNode {
         const highlightedText = searchText;
         const textAfter = lineText.substring(startIndex + searchText.length, Math.min(lineText.length, startIndex + searchText.length + contextAfter));
         // 行番号プレフィックス
-        const linePrefix = vscode_1.l10n.t('行 {0}: ', lineNumber);
+        const linePrefix = vscode_1.l10n.t('Line {0}: ', lineNumber);
         // 完全なテキストを構築
         const fullText = `${linePrefix}${textBefore}${highlightedText}${textAfter}`;
         // ハイライト位置を計算
@@ -352,7 +352,7 @@ class TextOccurrence extends TreeNode {
     // ラベルを更新するメソッド
     updateLabel() {
         // 行番号プレフィックス
-        let linePrefix = vscode_1.l10n.t('行 {0}: ', this.lineNumber + 1);
+        let linePrefix = vscode_1.l10n.t('Line {0}: ', this.lineNumber + 1);
         // 選択中の場合、特別なマーカーを追加
         const marker = this._isSelected ? '➤ ' : '';
         const fullText = `${marker}${linePrefix}${this.textBefore}${this.highlightedText}${this.textAfter}`;
@@ -999,18 +999,18 @@ function activate(context) {
                         isNavigatingFromSidebar = false;
                     }, 300);
                     // 検索テキストが見つからない旨をメッセージ表示
-                    vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('検索テキスト "{0}" は現在の行に含まれていません。', searchText));
+                    vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('The search text {0} is not found in the current line.', searchText));
                 }
             }
             else {
                 // 無効な行番号の場合
-                vscode_1.default.window.showWarningMessage(vscode_1.l10n.t('指定された行番号 ({0}) はドキュメントの範囲外です。', lineNumber + 1));
+                vscode_1.default.window.showWarningMessage(vscode_1.l10n.t('The specified line number ({0}) is outside the document range.', lineNumber + 1));
                 isNavigatingFromSidebar = false;
             }
         }
         catch (error) {
             console.error("Error navigating to history line:", error);
-            vscode_1.default.window.showErrorMessage(vscode_1.l10n.t('履歴行への移動中にエラーが発生しました。'));
+            vscode_1.default.window.showErrorMessage(vscode_1.l10n.t('Error navigating to history line.'));
             isNavigatingFromSidebar = false;
         }
     }));
@@ -1055,7 +1055,7 @@ function activate(context) {
     context.subscriptions.push(vscode_1.default.commands.registerCommand('rangeNavigator.searchAgain', async (searchText) => {
         const editor = vscode_1.default.window.activeTextEditor;
         if (!editor) {
-            return vscode_1.default.window.showWarningMessage(vscode_1.l10n.t('アクティブなエディタが見つかりません。'));
+            return vscode_1.default.window.showWarningMessage(vscode_1.l10n.t('No active editor found.'));
         }
         // 検索履歴モードを解除
         isSearchHistoryMode = false;
@@ -1085,7 +1085,7 @@ function activate(context) {
                 rangeNavigatorProvider.showWelcomeMessage();
             }
         }
-        vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('検索履歴をクリアしました。'));
+        vscode_1.default.window.showInformationMessage(vscode_1.l10n.t('Search history has been cleared.'));
     }));
     // ツリービューを折りたたむコマンド
     context.subscriptions.push(vscode_1.default.commands.registerCommand("range-navigator.collapseAll", () => {
@@ -1440,7 +1440,7 @@ function showSearchHistoryOnly(provider) {
     const historyNode = new SearchHistoryNode();
     // 検索履歴がない場合の表示
     if (searchHistory.length === 0) {
-        const emptyNode = new TreeNode(vscode_1.l10n.t('履歴がありません'), vscode_1.default.TreeItemCollapsibleState.None);
+        const emptyNode = new TreeNode(vscode_1.l10n.t('No history available.'), vscode_1.default.TreeItemCollapsibleState.None);
         emptyNode.iconPath = new vscode_1.default.ThemeIcon("info");
         historyNode.addChild(emptyNode);
     }
@@ -1454,7 +1454,7 @@ function showSearchHistoryOnly(provider) {
         }
     }
     // 見出し表示を変更
-    historyNode.label = vscode_1.l10n.t('検索履歴');
+    historyNode.label = vscode_1.l10n.t('Line Search History');
     // 検索履歴を常に展開表示
     historyNode.collapsibleState = vscode_1.default.TreeItemCollapsibleState.Expanded;
     // ツリービューを更新（検索履歴ノードのみを表示）
