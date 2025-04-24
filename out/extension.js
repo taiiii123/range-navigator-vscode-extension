@@ -53,6 +53,113 @@ let currentHighlightRange = null;
 let currentHighlightLineContent = null;
 // 選択中のアイテムを保持するグローバル変数
 let selectedOccurrence = null;
+// 主要プログラミング言語の予約語リスト
+const RESERVED_KEYWORDS = {
+    // JavaScript/TypeScript
+    js: [
+        'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default',
+        'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally',
+        'for', 'function', 'if', 'import', 'in', 'instanceof', 'new', 'null',
+        'return', 'super', 'switch', 'this', 'throw', 'true', 'try',
+        'typeof', 'var', 'void', 'while', 'with', 'await', 'async'
+    ],
+    // Python
+    python: [
+        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
+        'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
+        'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
+        'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'
+    ],
+    // Java
+    java: [
+        'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char',
+        'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum',
+        'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements',
+        'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package',
+        'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp',
+        'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient',
+        'try', 'void', 'volatile', 'while'
+    ],
+    // C/C++
+    c: [
+        'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do',
+        'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if',
+        'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
+        'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
+    ],
+    // C#
+    csharp: [
+        'abstract', 'as', 'base', 'bool', 'break', 'byte', 'case', 'catch',
+        'char', 'checked', 'class', 'const', 'continue', 'decimal', 'default', 'delegate',
+        'do', 'double', 'else', 'enum', 'event', 'explicit', 'extern', 'false',
+        'finally', 'fixed', 'float', 'for', 'foreach', 'goto', 'if', 'implicit',
+        'in', 'int', 'interface', 'internal', 'is', 'lock', 'long', 'namespace',
+        'new', 'null', 'object', 'operator', 'out', 'override', 'params', 'private',
+        'protected', 'public', 'readonly', 'ref', 'return', 'sbyte', 'sealed', 'short',
+        'sizeof', 'stackalloc', 'static', 'string', 'struct', 'switch', 'this', 'throw',
+        'true', 'try', 'typeof', 'uint', 'ulong', 'unchecked', 'unsafe', 'ushort',
+        'using', 'virtual', 'void', 'volatile', 'while'
+    ],
+    // Ruby
+    ruby: [
+        'BEGIN', 'END', 'alias', 'and', 'begin', 'break', 'case', 'class',
+        'def', 'defined?', 'do', 'else', 'elsif', 'end', 'ensure', 'false',
+        'for', 'if', 'in', 'module', 'next', 'nil', 'not', 'or', 'redo',
+        'rescue', 'retry', 'return', 'self', 'super', 'then', 'true', 'undef',
+        'unless', 'until', 'when', 'while', 'yield'
+    ],
+    // PHP
+    php: [
+        'abstract', 'and', 'array', 'as', 'break', 'callable', 'case', 'catch',
+        'class', 'clone', 'const', 'continue', 'declare', 'default', 'die', 'do',
+        'echo', 'else', 'elseif', 'empty', 'enddeclare', 'endfor', 'endforeach',
+        'endif', 'endswitch', 'endwhile', 'eval', 'exit', 'extends', 'final', 'finally',
+        'for', 'foreach', 'function', 'global', 'goto', 'if', 'implements', 'include',
+        'include_once', 'instanceof', 'insteadof', 'interface', 'isset', 'list', 'namespace',
+        'new', 'or', 'print', 'private', 'protected', 'public', 'require', 'require_once',
+        'return', 'static', 'switch', 'throw', 'trait', 'try', 'unset', 'use',
+        'var', 'while', 'xor', 'yield'
+    ]
+};
+// 全言語の予約語を1つの配列にまとめる
+const ALL_RESERVED_KEYWORDS = [
+    ...new Set([
+        ...RESERVED_KEYWORDS.js,
+        ...RESERVED_KEYWORDS.python,
+        ...RESERVED_KEYWORDS.java,
+        ...RESERVED_KEYWORDS.c,
+        ...RESERVED_KEYWORDS.csharp,
+        ...RESERVED_KEYWORDS.ruby,
+        ...RESERVED_KEYWORDS.php
+    ])
+];
+// ファイル拡張子に基づいて適切な予約語セットを取得する関数
+function getReservedKeywordsForLanguage(fileExtension) {
+    const ext = fileExtension.toLowerCase();
+    if (['js', 'jsx', 'ts', 'tsx'].includes(ext)) {
+        return RESERVED_KEYWORDS.js;
+    }
+    else if (['py', 'pyw'].includes(ext)) {
+        return RESERVED_KEYWORDS.python;
+    }
+    else if (['java'].includes(ext)) {
+        return RESERVED_KEYWORDS.java;
+    }
+    else if (['c', 'cpp', 'cc', 'h', 'hpp'].includes(ext)) {
+        return RESERVED_KEYWORDS.c;
+    }
+    else if (['cs'].includes(ext)) {
+        return RESERVED_KEYWORDS.csharp;
+    }
+    else if (['rb'].includes(ext)) {
+        return RESERVED_KEYWORDS.ruby;
+    }
+    else if (['php'].includes(ext)) {
+        return RESERVED_KEYWORDS.php;
+    }
+    // 不明な拡張子の場合は全ての予約語を返す
+    return ALL_RESERVED_KEYWORDS;
+}
 // 履歴用のクラス
 class HistoryItem {
     searchText;
@@ -467,6 +574,8 @@ async function parseCodeStructure(document) {
     const text = document.getText();
     // ファイル拡張子を取得して言語を特定
     const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
+    // 言語に応じた予約語セットを取得
+    const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
     // 様々な言語のクラス定義に対応するパターン
     const classPattern = /\b(?:class|struct|interface|trait|enum|record)\s+(\w+)(?:\s+(?:extends|implements|:|<|inherits|with)\s+[\w\s,<>]+)?/g;
     // 様々な言語の関数定義に対応するパターン
@@ -488,6 +597,10 @@ async function parseCodeStructure(document) {
         const startPos = document.positionAt(match.index);
         // クラスの終了位置を特定（言語によって異なる可能性がある）
         let classEndIndex;
+        // 予約語の場合はスキップ
+        if (languageKeywords.includes(className)) {
+            continue;
+        }
         // 括弧ベースの言語（Java, C#, JavaScript など）
         classEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
         const endPos = classEndIndex !== -1 ?
@@ -528,6 +641,10 @@ async function parseCodeStructure(document) {
     while ((match = functionPattern.exec(text)) !== null) {
         const functionName = match[1];
         const startPos = document.positionAt(match.index);
+        // 予約語の場合はスキップ
+        if (languageKeywords.includes(functionName)) {
+            continue;
+        }
         // 関数がクラス内にあるかチェック
         let isInsideClass = false;
         for (const structure of structures) {
@@ -776,10 +893,20 @@ function organizeOccurrencesByStructure(occurrences, structures, document) {
     const rootNodes = [];
     // まず、構造ノードの新しいインスタンスを作成
     for (const structure of structures) {
+        // 予約語の名前を持つノードは作成しない
+        const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
+        const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
+        if (languageKeywords.includes(structure.name)) {
+            continue; // 予約語の名前を持つ構造はスキップ
+        }
         const newNode = new CodeStructureNode(structure.name, structure.type, structure.range, document);
         // 子ノードを再帰的に処理
         for (const child of structure.children) {
             if (child instanceof CodeStructureNode) {
+                // 子ノードも予約語チェック
+                if (languageKeywords.includes(child.name)) {
+                    continue; // 予約語の名前を持つ子構造はスキップ
+                }
                 const childNode = new CodeStructureNode(child.name, child.type, child.range, document);
                 newNode.addChild(childNode);
             }
@@ -789,40 +916,63 @@ function organizeOccurrencesByStructure(occurrences, structures, document) {
     // 未分類の検索結果を格納するノード
     const uncategorizedNode = new TreeNode(vscode_1.l10n.t("📍 Other Occurrences"), vscode_1.default.TreeItemCollapsibleState.Expanded);
     let hasUncategorized = false;
+    // ファイル拡張子を取得
+    const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
+    // 言語に応じた予約語セットを取得
+    const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
     // 各出現箇所に関連付け情報を追加
     for (const occurrence of occurrences) {
         const position = occurrence.position;
         let matched = false;
-        // 出現箇所が属する最も詳細な構造を見つける（メソッド優先）
-        for (let i = 0; i < structures.length; i++) {
-            const structure = structures[i];
-            if (structure.range.contains(position)) {
-                // クラス内のメソッドをチェック
-                let methodMatched = false;
-                if (structure.type === 'class') {
-                    for (let j = 0; j < structure.children.length; j++) {
-                        const method = structure.children[j];
-                        if (method instanceof CodeStructureNode &&
-                            method.type === 'method' &&
-                            method.range.contains(position)) {
-                            // メソッド内の検索結果として追加
-                            const treeMethodNode = rootNodes[i].children.find(node => node instanceof CodeStructureNode &&
-                                node.name === method.name);
-                            if (treeMethodNode) {
-                                treeMethodNode.addChild(occurrence);
+        // 現在の行のテキストを取得
+        const lineText = document.lineAt(position.line).text;
+        // 予約語を含む行かどうかをチェック
+        const isReservedKeywordLine = languageKeywords.some(keyword => {
+            // 予約語に続いて制御構文のパターンがあるかをチェック
+            const keywordPattern = new RegExp(`\\b${keyword}\\b\\s*\\(`);
+            return keywordPattern.test(lineText);
+        });
+        // 予約語を含む行の場合は常に「その他」カテゴリに分類
+        if (isReservedKeywordLine) {
+            uncategorizedNode.addChild(occurrence);
+            hasUncategorized = true;
+            matched = true;
+            continue;
+        }
+        // 出現箇所が属する最も詳細な構造を見つけるループ
+        for (let i = 0; i < rootNodes.length; i++) {
+            const node = rootNodes[i];
+            // CodeStructureNodeの場合のみチェック
+            if (node instanceof CodeStructureNode) {
+                // 予約語のノードだった場合、子ノードにしない
+                if (languageKeywords.includes(node.name)) {
+                    continue;
+                }
+                // 位置が構造の範囲内かチェック
+                if (node.range.contains(position)) {
+                    // クラス内のメソッドをチェック - これも予約語チェックを追加
+                    let methodMatched = false;
+                    if (node.type === 'class') {
+                        for (let j = 0; j < node.children.length; j++) {
+                            const childNode = node.children[j];
+                            if (childNode instanceof CodeStructureNode &&
+                                childNode.type === 'method' &&
+                                !languageKeywords.includes(childNode.name) && // 予約語チェック
+                                childNode.range.contains(position)) {
+                                childNode.addChild(occurrence);
                                 methodMatched = true;
                                 matched = true;
                                 break;
                             }
                         }
                     }
+                    // メソッド内で見つからなかった場合はクラスまたは関数直下に追加
+                    if (!methodMatched) {
+                        node.addChild(occurrence);
+                        matched = true;
+                    }
+                    break;
                 }
-                // メソッド内で見つからなかった場合はクラスまたは関数直下に追加
-                if (!methodMatched) {
-                    rootNodes[i].addChild(occurrence);
-                    matched = true;
-                }
-                break;
             }
         }
         // どの構造にも属さない場合は「その他」に分類
@@ -943,6 +1093,21 @@ function activate(context) {
         const lineNumber = historyItem.occurrenceInfo.lineNumber;
         const searchText = historyItem.searchText;
         const searchTextLength = historyItem.occurrenceInfo.searchTextLength;
+        // 検索履歴から該当項目を削除して先頭に追加することで最新の履歴にする
+        const historyIndex = searchHistory.findIndex(item => item.occurrenceInfo.documentUri.toString() === docUri.toString() &&
+            item.occurrenceInfo.lineNumber === lineNumber &&
+            item.searchText === searchText);
+        if (historyIndex !== -1) {
+            // 該当項目を配列から取り出す
+            const selectedItem = searchHistory.splice(historyIndex, 1)[0];
+            // 配列の先頭に追加する
+            searchHistory.unshift(selectedItem);
+            // グローバルステートを更新
+            rangeNavigatorProvider.saveSearchHistory();
+            // 検索履歴ノードを更新
+            rangeNavigatorProvider.updateSearchHistoryNode();
+        }
+        // 以下は既存の処理
         // 検索履歴モードの場合は通常モードに切り替える
         if (isSearchHistoryMode) {
             isSearchHistoryMode = false;
