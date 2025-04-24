@@ -44,6 +44,11 @@
           "default": "rgba(255, 140, 0, 0.8)",
           "description": "%extension.rangeNavigator.highlight.borderColor.description%"
         },
+        "rangeNavigator.highlight.scrollbarColor": {
+            "type": "string",
+            "default": "rgba(255, 165, 0, 0.7)",
+            "description": "スクロールバーのハイライト色"
+        },
         "rangeNavigator.enableNavigationOnClick": {
           "type": "boolean",
           "default": false,

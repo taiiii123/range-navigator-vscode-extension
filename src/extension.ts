@@ -1103,6 +1103,7 @@ export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration('rangeNavigator');
     const backgroundColor = config.get('highlight.backgroundColor', 'rgba(255, 165, 0, 0.3)');
     const borderColor = config.get('highlight.borderColor', 'rgba(255, 140, 0, 0.8)');
+    const scrollbarColor = config.get('highlight.scrollbarColor', 'rgba(255, 165, 0, 0.7)');
 
     // 設定が変更された場合にウィンドウをリロードするためのイベントリスナーを登録
 	context.subscriptions.push(
@@ -1130,7 +1131,10 @@ export function activate(context: vscode.ExtensionContext) {
         backgroundColor: backgroundColor,
         border: '1px solid',
         borderColor: borderColor,
-        isWholeLine: true
+        isWholeLine: true,
+        // スクロールバーに表示するための設定を追加
+        overviewRulerColor: scrollbarColor,
+        overviewRulerLane: vscode.OverviewRulerLane.Center
     });
 
     const rangeNavigatorProvider = new RangeNavigatorProvider(context);
@@ -1683,6 +1687,30 @@ export function activate(context: vscode.ExtensionContext) {
     );
 }
 
+// 検索結果の全出現箇所をスクロールバーに表示する関数を追加
+function highlightAllOccurrencesInScrollbar(editor: vscode.TextEditor, occurrences: TextOccurrence[]) {
+    // 設定から色を読み込む
+    const config = vscode.workspace.getConfiguration('rangeNavigator');
+    const scrollbarColor = config.get('highlight.scrollbarColor', 'rgba(255, 165, 0, 0.7)');
+
+    // 出現箇所の範囲を収集
+    const ranges: vscode.Range[] = occurrences.map(occurrence => {
+        return new vscode.Range(
+            occurrence.lineNumber, occurrence.startIndex,
+            occurrence.lineNumber, occurrence.startIndex + occurrence.searchText.length
+        );
+    });
+
+    // スクロールバーハイライト用のデコレーションタイプ
+    const scrollbarDecorationType = vscode.window.createTextEditorDecorationType({
+        overviewRulerColor: scrollbarColor,
+        overviewRulerLane: vscode.OverviewRulerLane.Center
+    });
+
+    // スクロールバーにハイライトを適用
+    editor.setDecorations(scrollbarDecorationType, ranges);
+}
+
 // 検索結果から指定の行・位置に一致するTextOccurrenceを選択状態にするヘルパー関数を追加
 function updateOccurrenceSelection(
     provider: RangeNavigatorProvider,
@@ -1884,6 +1912,11 @@ async function findOccurrencesInStructure(
     if (!searchText || searchText.trim() === "") {
         provider.refresh([]);
         return;
+    }
+
+    // 結果が取得できた後に、スクロールバーにハイライトを表示
+    if (results.length > 0) {
+        highlightAllOccurrencesInScrollbar(editor, results);
     }
 
     // グローバルステートに保存（アクセサーメソッドを使用）
