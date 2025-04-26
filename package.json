@@ -98,9 +98,36 @@
         "title": "%extension.rangeNavigator.showSearchHistory%",
         "category": "Range Navigator",
         "icon": "$(history)"
+      },
+      {
+        "command": "range-navigator.findOccurrences",
+        "title": "テキスト検索",
+        "category": "Range Navigator"
+      },
+      {
+        "command": "range-navigator.clearHighlightsOnly",
+        "title": "ハイライトを削除",
+        "category": "Range Navigator",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
+      "editor/context": [
+        {
+          "submenu": "range-navigator-context-menu",
+          "group": "navigation"
+        }
+      ],
+      "range-navigator-context-menu": [
+        {
+          "command": "range-navigator.findOccurrences",
+          "group": "1_search"
+        },
+        {
+          "command": "range-navigator.clearHighlightsOnly",
+          "group": "1_search"
+        }
+      ],
       "view/title": [
         {
           "command": "range-navigator.expandAll",
@@ -136,7 +163,13 @@
           "group": "inline"
         }
       ]
-    }
+    },
+    "submenus": [
+      {
+        "id": "range-navigator-context-menu",
+        "label": "Range Navigator"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -1865,6 +1865,19 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+
+    // ハイライトのみを削除するコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('range-navigator.clearHighlightsOnly', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                clearHighlights(editor);
+                // 現在のハイライト情報をリセット
+                currentHighlightRange = null;
+                currentHighlightLineContent = null;
+            }
+        })
+    );
 }
 
 // 検索結果の全出現箇所をスクロールバーに表示する関数を追加
