@@ -22,10 +22,19 @@
     "Welcome to Range Navigator! 🔍": "Welcome to Range Navigator! 🔍",
     "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator helps you find and visualize occurrences of selected text in your code.",
     "How to use:": "How to use:",
+
+    "Search Features:": "Search Features:",
     "1. Select text in the editor": "1. Select text in the editor",
-    "2. All occurrences will be shown here": "2. All occurrences will be shown here",
+    "2. All exact matches will be shown here": "2. All exact matches will be shown here",
     "3. Click on an item to navigate to it": "3. Click on an item to navigate to it",
     "4. Selected occurrences are highlighted": "4. Selected occurrences are highlighted",
+
+    "History Features:": "History Features:",
+    "1. Selections you navigate to are saved in history": "1. Selections you navigate to are saved in history",
+    "2. Click the history icon to view past selections": "2. Click the history icon to view past selections",
+    "3. History entries show the line content and position": "3. History entries show the line content and position",
+    "4. Click a history item to return to that location": "4. Click a history item to return to that location",
+    "5. Line selection history is preserved between sessions": "5. Line selection history is preserved between sessions",
 
     "Line Search History": "Line Search History",
     "View and reuse past searches": "View and reuse past searches"

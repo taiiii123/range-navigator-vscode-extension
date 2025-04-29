@@ -22,10 +22,19 @@
     "Welcome to Range Navigator! 🔍": "Range Navigator へようこそ！ 🔍",
     "Range Navigator helps you find and visualize occurrences of selected text in your code.": "Range Navigator は選択したテキストの出現箇所を検索して視覚化するのに役立ちます。",
     "How to use:": "使い方:",
+
+    "Search Features:": "検索機能:",
     "1. Select text in the editor": "1. エディタでテキストを選択",
-    "2. All occurrences will be shown here": "2. すべての出現箇所がここに表示されます",
+    "2. All exact matches will be shown here": "2. 完全一致するすべての箇所がここに表示されます",
     "3. Click on an item to navigate to it": "3. 項目をクリックして該当箇所に移動",
     "4. Selected occurrences are highlighted": "4. 選択箇所がハイライト表示されます",
+
+    "History Features:": "履歴機能:",
+    "1. Selections you navigate to are saved in history": "1. 移動した選択範囲が履歴に保存されます",
+    "2. Click the history icon to view past selections": "2. 履歴アイコンをクリックして過去の選択を表示",
+    "3. History entries show the line content and position": "3. 履歴には行の内容と位置が表示されます",
+    "4. Click a history item to return to that location": "4. 履歴項目をクリックしてその場所に戻る",
+    "5. Line selection history is preserved between sessions": "5. 行選択の履歴はセッション間で保持されます",
 
     "Line Search History": "選択行の検索履歴",
     "View and reuse past searches": "過去の検索を表示して再利用"
