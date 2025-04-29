@@ -1,6 +1,7 @@
 {
     "language": "ja",
     "{0} ({1})": "{0} ({1}件)",
+    "Search Results ({0})": "検索結果 ({0}件)",
     "📍 Other Occurrences ({0})": "📍 その他の検索結果 ({0}件)",
     "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?": "Range Navigator: 設定が変更されました。変更を適用するにはウィンドウを再読み込みする必要があります。今すぐ再読み込みしますか？",
     "Yes": "はい",
@@ -13,7 +14,7 @@
     "No active editor found.": "アクティブなエディタが見つかりません。",
     "Line {0}: ": "{0} 行目: ",
     "The search text {0} is not found in the current line.": "検索テキスト {0} は現在の行に含まれていません。",
-    "The specified line number ({0}) is outside the document range.": "指定された行番号 ({0}) はドキュメントの範囲外です。",
+    "The specified line number {0} is outside the document range.": "指定された行番号 {0} はドキュメントの範囲外です。",
     "Error navigating to history line.": "履歴行への移動中にエラーが発生しました。",
     "Search history has been cleared.": "検索履歴をクリアしました。",
     "No history available.": "履歴がありません",

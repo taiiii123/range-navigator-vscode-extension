@@ -22,117 +22,24 @@ let currentHighlightLineContent: string | null = null;
 // 選択中のアイテムを保持するグローバル変数
 let selectedOccurrence: TextOccurrence | null = null;
 
-// 主要プログラミング言語の予約語リスト
-const RESERVED_KEYWORDS = {
+// グローバル変数としてデコレーションタイプを追加
+let selectionHighlightDecorationType: vscode.TextEditorDecorationType;
+
+
+// サポートされている拡張子の定義
+// 構造化表示対象の拡張子
+const STRUCTURED_VIEW_EXTENSIONS = {
     // JavaScript/TypeScript
-    js: [
-        'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default',
-        'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally',
-        'for', 'function', 'if', 'import', 'in', 'instanceof', 'new', 'null',
-        'return', 'super', 'switch', 'this', 'throw', 'true', 'try',
-        'typeof', 'var', 'void', 'while', 'with', 'await', 'async'
-    ],
-
-    // Python
-    python: [
-        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
-        'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
-        'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
-        'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'
-    ],
-
+    jsFamily: ['js', 'jsx', 'ts', 'tsx'],
     // Java
-    java: [
-        'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char',
-        'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum',
-        'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements',
-        'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package',
-        'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp',
-        'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient',
-        'try', 'void', 'volatile', 'while'
-    ],
-
-    // C/C++
-    c: [
-        'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do',
-        'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if',
-        'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
-        'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
-    ],
-
-    // C#
-    csharp: [
-        'abstract', 'as', 'base', 'bool', 'break', 'byte', 'case', 'catch',
-        'char', 'checked', 'class', 'const', 'continue', 'decimal', 'default', 'delegate',
-        'do', 'double', 'else', 'enum', 'event', 'explicit', 'extern', 'false',
-        'finally', 'fixed', 'float', 'for', 'foreach', 'goto', 'if', 'implicit',
-        'in', 'int', 'interface', 'internal', 'is', 'lock', 'long', 'namespace',
-        'new', 'null', 'object', 'operator', 'out', 'override', 'params', 'private',
-        'protected', 'public', 'readonly', 'ref', 'return', 'sbyte', 'sealed', 'short',
-        'sizeof', 'stackalloc', 'static', 'string', 'struct', 'switch', 'this', 'throw',
-        'true', 'try', 'typeof', 'uint', 'ulong', 'unchecked', 'unsafe', 'ushort',
-        'using', 'virtual', 'void', 'volatile', 'while'
-    ],
-
-    // Ruby
-    ruby: [
-        'BEGIN', 'END', 'alias', 'and', 'begin', 'break', 'case', 'class',
-        'def', 'defined?', 'do', 'else', 'elsif', 'end', 'ensure', 'false',
-        'for', 'if', 'in', 'module', 'next', 'nil', 'not', 'or', 'redo',
-        'rescue', 'retry', 'return', 'self', 'super', 'then', 'true', 'undef',
-        'unless', 'until', 'when', 'while', 'yield'
-    ],
-
-    // PHP
-    php: [
-        'abstract', 'and', 'array', 'as', 'break', 'callable', 'case', 'catch',
-        'class', 'clone', 'const', 'continue', 'declare', 'default', 'die', 'do',
-        'echo', 'else', 'elseif', 'empty', 'enddeclare', 'endfor', 'endforeach',
-        'endif', 'endswitch', 'endwhile', 'eval', 'exit', 'extends', 'final', 'finally',
-        'for', 'foreach', 'function', 'global', 'goto', 'if', 'implements', 'include',
-        'include_once', 'instanceof', 'insteadof', 'interface', 'isset', 'list', 'namespace',
-        'new', 'or', 'print', 'private', 'protected', 'public', 'require', 'require_once',
-        'return', 'static', 'switch', 'throw', 'trait', 'try', 'unset', 'use',
-        'var', 'while', 'xor', 'yield'
-    ]
+    javaFamily: ['java']
 };
 
-// 全言語の予約語を1つの配列にまとめる
-const ALL_RESERVED_KEYWORDS = [
-...new Set([
-    ...RESERVED_KEYWORDS.js,
-    ...RESERVED_KEYWORDS.python,
-    ...RESERVED_KEYWORDS.java,
-    ...RESERVED_KEYWORDS.c,
-    ...RESERVED_KEYWORDS.csharp,
-    ...RESERVED_KEYWORDS.ruby,
-    ...RESERVED_KEYWORDS.php
-])
+// すべてのサポート拡張子を一つの配列に展開
+const SUPPORTED_EXTENSIONS = [
+    ...STRUCTURED_VIEW_EXTENSIONS.jsFamily,
+    ...STRUCTURED_VIEW_EXTENSIONS.javaFamily
 ];
-
-// ファイル拡張子に基づいて適切な予約語セットを取得する関数
-function getReservedKeywordsForLanguage(fileExtension: string): string[] {
-    const ext = fileExtension.toLowerCase();
-
-    if (['js', 'jsx', 'ts', 'tsx'].includes(ext)) {
-        return RESERVED_KEYWORDS.js;
-    } else if (['py', 'pyw'].includes(ext)) {
-        return RESERVED_KEYWORDS.python;
-    } else if (['java'].includes(ext)) {
-        return RESERVED_KEYWORDS.java;
-    } else if (['c', 'cpp', 'cc', 'h', 'hpp'].includes(ext)) {
-        return RESERVED_KEYWORDS.c;
-    } else if (['cs'].includes(ext)) {
-        return RESERVED_KEYWORDS.csharp;
-    } else if (['rb'].includes(ext)) {
-        return RESERVED_KEYWORDS.ruby;
-    } else if (['php'].includes(ext)) {
-        return RESERVED_KEYWORDS.php;
-    }
-
-    // 不明な拡張子の場合は全ての予約語を返す
-    return ALL_RESERVED_KEYWORDS;
-}
 
 // 検索行を記録するための拡張情報
 interface OccurrenceInfo {
@@ -627,7 +534,7 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
     const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
 
     // 言語に応じた予約語セットを取得
-    const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
+    // const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
 
     // 様々な言語のクラス定義に対応するパターン
     const classPattern = /\b(?:class|struct|interface|trait|enum|record)\s+(\w+)(?:\s+(?:extends|implements|:|<|inherits|with)\s+[\w\s,<>]+)?/g;
@@ -637,16 +544,6 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
 
     // 様々な言語のメソッド定義に対応するパターン
     const methodPattern = /(?:\b(?:public|private|protected|internal|final|override|virtual|static|async)(?:\s+|\s+\w+\s+))?(\w+)\s*\([^)]*\)\s*(?::\s*[\w<>[\],\s]+\s*)?(?:{\s*|=>|throws|is|as|->)/g;
-
-    // Python特有のインデントベースのブロック定義パターン
-    const pythonDefPattern = /\bdef\s+(\w+)\s*\([^)]*\):/g;
-    const pythonClassPattern = /\bclass\s+(\w+)(?:\([\w\s,]+\))?:/g;
-
-    // 言語ごとの特殊処理を適用
-    if (['py', 'pyw'].includes(fileExtension)) {
-        // Pythonファイルの特殊処理
-        return await parsePythonStructure(document, text);
-    }
 
     // クラスを検索
     let match;
@@ -658,9 +555,9 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
         let classEndIndex;
 
         // 予約語の場合はスキップ
-        if (languageKeywords.includes(className)) {
-            continue;
-        }
+        // if (languageKeywords.includes(className)) {
+        //     continue;
+        // }
 
         // 括弧ベースの言語（Java, C#, JavaScript など）
         classEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
@@ -723,9 +620,9 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
         const startPos = document.positionAt(match.index);
 
         // 予約語の場合はスキップ
-        if (languageKeywords.includes(functionName)) {
-            continue;
-        }
+        // if (languageKeywords.includes(functionName)) {
+        //     continue;
+        // }
 
         // 関数がクラス内にあるかチェック
         let isInsideClass = false;
@@ -790,240 +687,6 @@ function findMatchingBrace(text: string, startOffset: number): number {
     return -1; // 対応する閉じ括弧が見つからない
 }
 
-// Python特有のインデントベースの構造を解析する
-async function parsePythonStructure(document: vscode.TextDocument, text: string): Promise<CodeStructureNode[]> {
-    const structures: CodeStructureNode[] = [];
-    const lines = text.split("\n");
-
-    // Pythonのクラスパターンとメソッドパターン
-    const classPattern = /^\s*class\s+(\w+)(?:\([\w\s,]+\))?:/;
-    const methodPattern = /^\s*def\s+(\w+)\s*\([^)]*\):/;
-    const functionPattern = /^\s*def\s+(\w+)\s*\([^)]*\):/;
-
-    // インデントとノード情報を格納する配列
-    type NodeInfo = {
-        node: CodeStructureNode;
-        indentLevel: number;
-        startLine: number;
-        parent?: NodeInfo;
-        children: NodeInfo[];
-    };
-
-    const nodeInfos: NodeInfo[] = [];
-    const rootNodes: NodeInfo[] = [];
-
-    // スタック（現在のインデントコンテキスト）
-    // [インデントレベル, 親ノード情報]
-    let currentContext: [number, NodeInfo | undefined] = [0, undefined];
-
-    // 1回目のパス: ノード構造を構築
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 空行やコメント行はスキップ
-        if (line.trim() === '' || line.trim().startsWith('#')) {
-            continue;
-        }
-
-        // インデントレベルを計算
-        const indentMatch = line.match(/^(\s*)/);
-        const indentLevel = indentMatch ? indentMatch[1].length : 0;
-
-        // 現在のコンテキストよりインデントが少ない場合、前のコンテキストに戻る
-        if (indentLevel < currentContext[0]) {
-            // 親ノードを探す
-            let parent = currentContext[1]?.parent;
-            while (parent && parent.indentLevel >= indentLevel) {
-                parent = parent.parent;
-            }
-
-            currentContext = [indentLevel, parent];
-        }
-
-        // クラス定義
-        const classMatch = line.match(classPattern);
-        if (classMatch) {
-            const className = classMatch[1];
-            const startPos = new vscode.Position(i, 0);
-            // 仮の終了位置（後で更新）
-            const endPos = new vscode.Position(i + 1, 0);
-
-            const classNode = new CodeStructureNode(
-                className,
-                'class',
-                new vscode.Range(startPos, endPos),
-                document
-            );
-
-            const nodeInfo: NodeInfo = {
-                node: classNode,
-                indentLevel: indentLevel,
-                startLine: i,
-                parent: currentContext[1],
-                children: []
-            };
-
-            // 親がある場合は子として追加
-            if (currentContext[1]) {
-                currentContext[1].children.push(nodeInfo);
-            } else {
-                // ルートノードとして追加
-                rootNodes.push(nodeInfo);
-            }
-
-            nodeInfos.push(nodeInfo);
-            // 新しいコンテキストに切り替え
-            currentContext = [indentLevel, nodeInfo];
-            continue;
-        }
-
-        // メソッド定義
-        const methodMatch = line.match(methodPattern);
-        if (methodMatch && currentContext[1] && currentContext[1].node.type === 'class') {
-            // クラスコンテキスト内の場合はメソッド
-            const methodName = methodMatch[1];
-            const startPos = new vscode.Position(i, 0);
-            // 仮の終了位置
-            const endPos = new vscode.Position(i + 1, 0);
-
-            const methodNode = new CodeStructureNode(
-                methodName,
-                'method',
-                new vscode.Range(startPos, endPos),
-                document
-            );
-
-            const nodeInfo: NodeInfo = {
-                node: methodNode,
-                indentLevel: indentLevel,
-                startLine: i,
-                parent: currentContext[1],
-                children: []
-            };
-
-            currentContext[1].children.push(nodeInfo);
-            nodeInfos.push(nodeInfo);
-
-            // 新しいコンテキストに切り替え
-            currentContext = [indentLevel, nodeInfo];
-            continue;
-        }
-
-        // クラス外の関数定義
-        const functionMatch = line.match(functionPattern);
-        if (functionMatch && (!currentContext[1] || currentContext[1].node.type !== 'class')) {
-            // クラスコンテキスト外の場合は関数
-            const functionName = functionMatch[1];
-            const startPos = new vscode.Position(i, 0);
-            // 仮の終了位置
-            const endPos = new vscode.Position(i + 1, 0);
-
-            const functionNode = new CodeStructureNode(
-                functionName,
-                'function',
-                new vscode.Range(startPos, endPos),
-                document
-            );
-
-            const nodeInfo: NodeInfo = {
-                node: functionNode,
-                indentLevel: indentLevel,
-                startLine: i,
-                parent: currentContext[1],
-                children: []
-            };
-
-            // 親がある場合は子として追加
-            if (currentContext[1]) {
-                currentContext[1].children.push(nodeInfo);
-            } else {
-                // ルートノードとして追加
-                rootNodes.push(nodeInfo);
-            }
-
-            nodeInfos.push(nodeInfo);
-
-            // 新しいコンテキストに切り替え
-            currentContext = [indentLevel, nodeInfo];
-        }
-    }
-
-    // 2回目のパス: 終了位置を計算して実際のノード階層を構築
-    for (let i = 0; i < nodeInfos.length; i++) {
-        const nodeInfo = nodeInfos[i];
-        const nextNodeWithLessIndent = nodeInfos.slice(i + 1).find(n => n.indentLevel <= nodeInfo.indentLevel);
-
-        let endLine: number;
-        if (nextNodeWithLessIndent) {
-            // 次のより浅いインデントのノードまで
-            endLine = nextNodeWithLessIndent.startLine - 1;
-        } else {
-            // ファイルの終わりまで
-            endLine = lines.length - 1;
-        }
-
-        // 新しいインスタンスを作成（range読み取り専用対策）
-        const newNode = new CodeStructureNode(
-            nodeInfo.node.name,
-            nodeInfo.node.type,
-            new vscode.Range(
-                nodeInfo.node.range.start,
-                new vscode.Position(endLine + 1, 0)
-            ),
-            document
-        );
-
-        // 子ノードの追加
-        for (const childInfo of nodeInfo.children) {
-            // 先に子ノードからツリーを構築（後順トラバース）
-            const index = nodeInfos.indexOf(childInfo);
-            if (index > i) {
-                // まだ処理していない子ノードの場合はスキップ
-                continue;
-            }
-
-            // 子ノードを追加
-            newNode.addChild(childInfo.node);
-        }
-
-        // 親ノードに追加
-        if (nodeInfo.parent) {
-            // 親ノードが既に処理済みで更新されている場合
-            const parentIndex = nodeInfos.indexOf(nodeInfo.parent);
-            if (parentIndex < i) {
-                // 親を探してnodeInfosから削除
-                const rootIndex = rootNodes.indexOf(nodeInfo.parent);
-                if (rootIndex >= 0) {
-                    structures.push(newNode);
-                } else {
-                    // 処理済みのノードを探す
-                    for (const structure of structures) {
-                        if (addToParentIfFound(structure, nodeInfo.parent.node.name, newNode)) {
-                            break;
-                        }
-                    }
-                }
-            }
-        } else {
-            // ルートノード
-            structures.push(newNode);
-        }
-
-        // 古いノードを新しいノードで置き換え
-        nodeInfo.node = newNode;
-    }
-
-    // 最終的なルートノードの構築
-    const finalStructures: CodeStructureNode[] = [];
-
-    for (const nodeInfo of rootNodes) {
-        // 最新のノードを使用
-        finalStructures.push(nodeInfo.node);
-    }
-
-    return finalStructures;
-}
-
 // 親ノードを探して子ノードを追加するヘルパー関数
 function addToParentIfFound(node: CodeStructureNode, parentName: string, childNode: CodeStructureNode): boolean {
     if (node.name === parentName) {
@@ -1054,13 +717,6 @@ function organizeOccurrencesByStructure(
 
     // まず、構造ノードの新しいインスタンスを作成
     for (const structure of structures) {
-        // 予約語の名前を持つノードは作成しない
-        const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
-        const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
-
-        if (languageKeywords.includes(structure.name)) {
-            continue; // 予約語の名前を持つ構造はスキップ
-        }
 
         const newNode = new CodeStructureNode(
             structure.name,
@@ -1072,11 +728,6 @@ function organizeOccurrencesByStructure(
         // 子ノードを再帰的に処理
         for (const child of structure.children) {
             if (child instanceof CodeStructureNode) {
-                // 子ノードも予約語チェック
-                if (languageKeywords.includes(child.name)) {
-                    continue; // 予約語の名前を持つ子構造はスキップ
-                }
-
                 const childNode = new CodeStructureNode(
                     child.name,
                     child.type,
@@ -1101,9 +752,6 @@ function organizeOccurrencesByStructure(
     // ファイル拡張子を取得
     const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
 
-    // 言語に応じた予約語セットを取得
-    const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
-
     // 各出現箇所に関連付け情報を追加
     for (const occurrence of occurrences) {
         const position = occurrence.position;
@@ -1112,44 +760,22 @@ function organizeOccurrencesByStructure(
         // 現在の行のテキストを取得
         const lineText = document.lineAt(position.line).text;
 
-        // 予約語を含む行かどうかをチェック
-        const isReservedKeywordLine = languageKeywords.some(keyword => {
-            // 予約語に続いて制御構文のパターンがあるかをチェック
-            const keywordPattern = new RegExp(`\\b${keyword}\\b\\s*\\(`);
-            return keywordPattern.test(lineText);
-        });
-
-        // 予約語を含む行の場合は常に「その他」カテゴリに分類
-        if (isReservedKeywordLine) {
-            uncategorizedNode.addChild(occurrence);
-            hasUncategorized = true;
-            matched = true;
-            continue;
-        }
-
         // 出現箇所が属する最も詳細な構造を見つけるループ
         for (let i = 0; i < rootNodes.length; i++) {
             const node = rootNodes[i];
 
             // CodeStructureNodeの場合のみチェック
             if (node instanceof CodeStructureNode) {
-                // 予約語のノードだった場合、子ノードにしない
-                if (languageKeywords.includes(node.name)) {
-                    continue;
-                }
-
                 // 位置が構造の範囲内かチェック
                 if (node.range.contains(position)) {
-                    // クラス内のメソッドをチェック - これも予約語チェックを追加
+                    // クラス内のメソッドをチェック
                     let methodMatched = false;
                     if (node.type === 'class') {
                         for (let j = 0; j < node.children.length; j++) {
                             const childNode = node.children[j];
                             if (childNode instanceof CodeStructureNode &&
                                 childNode.type === 'method' &&
-                                !languageKeywords.includes(childNode.name) && // 予約語チェック
                                 childNode.range.contains(position)) {
-
                                 childNode.addChild(occurrence);
                                 methodMatched = true;
                                 matched = true;
@@ -1163,7 +789,6 @@ function organizeOccurrencesByStructure(
                         node.addChild(occurrence);
                         matched = true;
                     }
-
                     break;
                 }
             }
@@ -1217,11 +842,40 @@ function organizeOccurrencesByStructure(
 
     return filteredRootNodes;
 }
+
 export function activate(context: vscode.ExtensionContext) {
     console.log("Activating Range Navigator extension");
 
+    // 設定から色情報を取得
+    const config = vscode.workspace.getConfiguration('rangeNavigator');
+    const backgroundColor = config.get('highlight.backgroundColor', 'rgba(255, 165, 0, 0.3)');
+    const borderColor = config.get('highlight.borderColor', 'rgba(255, 140, 0, 0.8)');
+    const scrollbarColor = config.get('highlight.scrollbarColor', 'rgba(255, 165, 0, 0.7)');
+
+    // 既存の行ハイライト用のデコレーションタイプ
+    highlightDecorationType = vscode.window.createTextEditorDecorationType({
+        backgroundColor: backgroundColor,
+        border: '1px solid',
+        borderColor: borderColor,
+        isWholeLine: true,
+        overviewRulerColor: scrollbarColor,
+        overviewRulerLane: vscode.OverviewRulerLane.Center
+    });
+
+    // 範囲選択用のデコレーションタイプを追加
+    selectionHighlightDecorationType = vscode.window.createTextEditorDecorationType({
+        backgroundColor: backgroundColor,
+        border: '1px solid',
+        borderColor: borderColor,
+        isWholeLine: false, // 選択範囲のみをハイライト
+        overviewRulerColor: scrollbarColor,
+        overviewRulerLane: vscode.OverviewRulerLane.Right
+    });
+
     // 拡張機能のコンテキストから検索履歴を読み込む
     const savedHistory = context.globalState.get('searchHistory', []) as any[];
+    console.log("Saving search history:", savedHistory);
+
 
     try {
         // 型が配列の場合のみ処理
@@ -1259,11 +913,6 @@ export function activate(context: vscode.ExtensionContext) {
     // 以下は既存のコード
     // コンテキスト変数を初期化
     updateSearchContext(false);
-
-    const config = vscode.workspace.getConfiguration('rangeNavigator');
-    const backgroundColor = config.get('highlight.backgroundColor', 'rgba(255, 165, 0, 0.3)');
-    const borderColor = config.get('highlight.borderColor', 'rgba(255, 140, 0, 0.8)');
-    const scrollbarColor = config.get('highlight.scrollbarColor', 'rgba(255, 165, 0, 0.7)');
 
     // 設定が変更された場合にウィンドウをリロードするためのイベントリスナーを登録
 	context.subscriptions.push(
@@ -1423,7 +1072,7 @@ export function activate(context: vscode.ExtensionContext) {
                     } else {
                         // 無効な行番号の場合
                         vscode.window.showWarningMessage(
-                            l10n.t('The specified line number ({0}) is outside the document range.', lineNumber + 1)
+                            l10n.t('The specified line number {0} is outside the document range.', lineNumber + 1)
                         );
                         isNavigatingFromSidebar = false;
                     }
@@ -1560,29 +1209,34 @@ export function activate(context: vscode.ExtensionContext) {
                 // サイドバーからのナビゲーションフラグを設定
                 isNavigatingFromSidebar = true;
 
+                // クリックされた行への移動とハイライト表示を行うコマンド内
                 vscode.window.showTextDocument(docUri).then(editor => {
-                    console.log(`Selected text1: "${editor.document.getText(editor.selection)}"`);
                     // 検索テキストの範囲全体を選択
                     const selectionEnd = new vscode.Position(position.line, position.character + searchTextLength);
+                    const selectionRange = new vscode.Range(position, selectionEnd);
                     editor.selection = new vscode.Selection(position, selectionEnd);
-                    console.log(`Selected text2: "${editor.document.getText(editor.selection)}"`);
 
                     // 見やすいようにスクロール位置を調整
                     editor.revealRange(
-                        new vscode.Range(position, selectionEnd),
+                        selectionRange,
                         vscode.TextEditorRevealType.InCenter
                     );
 
-                    // 行ハイライトを適用
+                    // 行全体と選択範囲のハイライトを適用
                     setTimeout(() => {
                         // 現在の行の最新の範囲を取得
                         const currentLine = editor.document.lineAt(position.line);
-                        const updatedRange = new vscode.Range(
+                        const lineRange = new vscode.Range(
                             position.line, 0,
                             position.line, currentLine.text.length
                         );
 
-                        highlightSelectedLine(editor, updatedRange);
+                        // 行ハイライトを適用
+                        highlightSelectedLine(editor, lineRange);
+
+                        // 選択範囲ハイライトを適用
+                        highlightSelection(editor, selectionRange);
+
                         // 操作完了後にフラグをリセット
                         setTimeout(() => {
                             isNavigatingFromSidebar = false;
@@ -1659,24 +1313,27 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // 範囲選択の場合のみハイライトをクリア
+        // 範囲選択の場合
         if (!selection.isEmpty) {
-            // 前回も範囲選択だった場合、もしくは初めての範囲選択の場合
-            clearHighlights(editor);
-
             const selectedText = editor.document.getText(selection);
             if (selectedText && selectedText.length > 0) {
                 console.log(`Selected text: "${selectedText}"`);
                 lastSearchedText = selectedText;  // 最後に検索したテキストを保存
+
+                // findOccurrencesInStructure内でハイライトを処理するため、
+                // ここではハイライト処理を行わない
                 await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
             }
         } else {
             // カーソル位置の変更だけの場合（範囲選択なし）
-            // 選択がクリアされた場合でも、ハイライトとサイドバーの結果を維持
+            // 選択範囲ハイライトはクリアするが、行ハイライトは保持
+            editor.setDecorations(selectionHighlightDecorationType, []);
+
             if (lastSearchedText) {
-                // 何もしない - ハイライトと検索結果はそのまま表示
+                // 何もしない - 行ハイライトと検索結果はそのまま表示
             } else {
                 // 検索結果がない場合はウェルカムメッセージを表示
+                clearHighlights(editor);
                 rangeNavigatorProvider.showWelcomeMessage();
             }
         }
@@ -1880,6 +1537,69 @@ export function activate(context: vscode.ExtensionContext) {
     );
 }
 
+// エディタの選択位置からサイドバーの対応項目を選択状態にする関数
+function updateSidebarSelectionFromEditor(
+    editor: vscode.TextEditor,
+    selection: vscode.Selection,
+    provider: RangeNavigatorProvider
+): void {
+    // 前の選択をクリア
+    if (selectedOccurrence) {
+        selectedOccurrence.isSelected = false;
+        provider.refreshNode(selectedOccurrence);
+        selectedOccurrence = null;
+    }
+
+    const selectedText = editor.document.getText(selection);
+    const selectedLine = selection.start.line;
+    const selectedCharacter = selection.start.character;
+
+    // ツリー内のノードを再帰的に探索する関数
+    function findMatchingOccurrence(nodes: TreeNode[]): TextOccurrence | null {
+        for (const node of nodes) {
+            // TextOccurrenceノードの場合、位置が一致するか確認
+            if (node instanceof TextOccurrence) {
+                // 行番号と選択テキストが一致し、開始位置が選択範囲内にある場合にマッチとみなす
+                if (node.lineNumber === selectedLine &&
+                    node.searchText === selectedText &&
+                    Math.abs(node.startIndex - selectedCharacter) < node.searchText.length) {
+                    return node;
+                }
+            }
+
+            // 子ノードがある場合は再帰的に探索
+            if (node.children && node.children.length > 0) {
+                const found = findMatchingOccurrence(node.children);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    // rootNodesから検索
+    const occurrence = findMatchingOccurrence(provider['rootNodes']);
+
+    // 対応するノードが見つかった場合は選択状態に設定
+    if (occurrence) {
+        selectedOccurrence = occurrence;
+        occurrence.isSelected = true;
+        provider.refreshNode(occurrence);
+
+        // 可能であればサイドバー内でそのノードを表示するようにスクロール
+        try {
+            vscode.commands.executeCommand('rangeNavigatorView.reveal', occurrence, {
+                select: true,
+                focus: false,
+                expand: true
+            });
+        } catch (error) {
+            console.log("Error revealing node in tree view:", error);
+        }
+    }
+}
+
 // 検索結果の全出現箇所をスクロールバーに表示する関数を追加
 function highlightAllOccurrencesInScrollbar(editor: vscode.TextEditor, occurrences: TextOccurrence[]) {
     // 設定から色を読み込む
@@ -2062,9 +1782,19 @@ async function expandAll(treeView: vscode.TreeView<any>, provider: vscode.TreeDa
     }
 }
 
-// ハイライトを消去する関数
+// 選択範囲をハイライトする関数
+function highlightSelection(editor: vscode.TextEditor, range: vscode.Range) {
+    // 既存のハイライトを保持したまま、選択範囲のハイライトを適用
+    editor.setDecorations(selectionHighlightDecorationType, [range]);
+    console.log(`Highlighting selection from line ${range.start.line + 1}:${range.start.character} to line ${range.end.line + 1}:${range.end.character}`);
+}
+
+// ハイライトをクリアする関数を拡張
 function clearHighlights(editor: vscode.TextEditor) {
+    // 行ハイライトをクリア
     editor.setDecorations(highlightDecorationType, []);
+    // 選択範囲ハイライトもクリア
+    editor.setDecorations(selectionHighlightDecorationType, []);
     // ハイライト情報をリセット
     currentHighlightRange = null;
     currentHighlightLineContent = null;
@@ -2086,12 +1816,12 @@ function updateSearchContext(hasSearchText: boolean): void {
     vscode.commands.executeCommand('setContext', 'lastSearchedText', hasSearchText);
 }
 
-// findOccurrencesInStructure関数内の修正
+// findOccurrencesInStructure関数の完全版（修正あり）
 async function findOccurrencesInStructure(
     editor: vscode.TextEditor,
     searchText: string,
     provider: RangeNavigatorProvider,
-    prevSelection: TextOccurrence | null = null // 引数追加
+    prevSelection: TextOccurrence | null = null
 ): Promise<void> {
     const document = editor.document;
     const results: TextOccurrence[] = [];
@@ -2107,35 +1837,27 @@ async function findOccurrencesInStructure(
         return;
     }
 
-    // 結果が取得できた後に、スクロールバーにハイライトを表示
-    if (results.length > 0) {
-        highlightAllOccurrencesInScrollbar(editor, results);
-    }
-
-    // グローバルステートに保存（アクセサーメソッドを使用）
-    provider.saveSearchHistory();
-
-    // 検索履歴ノードを更新
-    provider.updateSearchHistoryNode();
-
     try {
         // 正規表現で特殊文字をエスケープ
         const escapedText = searchText.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-        const searchRegex = new RegExp(escapedText, "g");
+
+        // 完全一致検索のための正規表現パターンを作成
+        const searchRegex = new RegExp("\\b" + escapedText + "\\b", "g");
 
         // ドキュメント内の各行を検索
         for (let i = 0; i < document.lineCount; i++) {
             const line = document.lineAt(i);
             const lineText = line.text;
 
-            // 検索テキストが含まれている場合のみ処理
-            if (!lineText.includes(searchText)) {
+            // 行が検索パターンにマッチするかをテスト
+            if (!searchRegex.test(lineText)) {
                 continue;
-            };
+            }
+
+            // 正規表現の lastIndex をリセット
+            searchRegex.lastIndex = 0;
 
             let match;
-            searchRegex.lastIndex = 0; // 正規表現のindexをリセット
-
             while ((match = searchRegex.exec(lineText)) !== null) {
                 const startPos = new vscode.Position(i, match.index);
 
@@ -2152,8 +1874,11 @@ async function findOccurrencesInStructure(
             }
         }
 
-        // 検索結果が0件の場合はメッセージを表示
+        // 検索結果が0件の場合
         if (results.length === 0) {
+            // ハイライトをクリア
+            clearHighlights(editor);
+
             // メッセージテキスト
             const messageText = l10n.t("No results found for: {0}", searchText);
 
@@ -2178,20 +1903,78 @@ async function findOccurrencesInStructure(
             return;
         }
 
-        // コード構造を解析
-        const codeStructures = await parseCodeStructure(document);
+        // 検索結果がある場合のみ、ハイライトを適用
+        if (results.length > 0) {
+            // 現在の選択範囲に対応する行全体のハイライトを適用
+            const selection = editor.selection;
+            const lineRange = new vscode.Range(
+                selection.start.line, 0,
+                selection.end.line, editor.document.lineAt(selection.end.line).text.length
+            );
+            highlightSelectedLine(editor, lineRange);
 
-        // 結果をコード構造と関連付ける
-        const organizedResults = organizeOccurrencesByStructure(results, codeStructures, document);
+            // 選択範囲のハイライトを追加
+            highlightSelection(editor, selection);
 
-        // 以前の選択状態を復元する処理を追加
-        if (prevSelection) {
-            // 前の選択に一致する新しいノードを探す
-            restoreSelection(organizedResults, prevSelection);
+            // スクロールバーにハイライトを表示
+            highlightAllOccurrencesInScrollbar(editor, results);
         }
 
-        // 検索結果をプロバイダーに通知
-        provider.refresh(organizedResults);
+        // エディタの選択位置から対応するサイドバー項目を更新
+        if (editor.selection && !editor.selection.isEmpty) {
+            setTimeout(() => {
+                updateSidebarSelectionFromEditor(editor, editor.selection, provider);
+            }, 200);
+        }
+
+        // グローバルステートに保存（アクセサーメソッドを使用）
+        provider.saveSearchHistory();
+
+        // 検索履歴ノードを更新
+        provider.updateSearchHistoryNode();
+
+        // ファイル拡張子を取得
+        const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
+
+        // サポートされている拡張子かどうかをチェック
+        const isStructuredView = SUPPORTED_EXTENSIONS.includes(fileExtension);
+
+        if (isStructuredView) {
+            // サポートされている拡張子の場合のみコード構造を解析
+            const codeStructures = await parseCodeStructure(document);
+
+            // 結果をコード構造と関連付ける
+            const organizedResults = organizeOccurrencesByStructure(results, codeStructures, document);
+
+            // 以前の選択状態を復元する処理を追加
+            if (prevSelection) {
+                // 前の選択に一致する新しいノードを探す
+                restoreSelection(organizedResults, prevSelection);
+            }
+
+            // 検索結果をプロバイダーに通知
+            provider.refresh(organizedResults);
+        } else {
+            // サポートされていない拡張子の場合はフラットな結果リストを表示
+            // 「検索結果」ルートノードを作成
+            const resultRootNode = new TreeNode(
+                l10n.t('Search Results ({0})', results.length),
+                vscode.TreeItemCollapsibleState.Expanded
+            );
+
+            // 検索結果を追加
+            for (const result of results) {
+                resultRootNode.addChild(result);
+            }
+
+            // 以前の選択状態を復元
+            if (prevSelection) {
+                restoreSelection([resultRootNode], prevSelection);
+            }
+
+            // 検索結果をプロバイダーに通知
+            provider.refresh([resultRootNode]);
+        }
     } catch (error) {
         console.error("Error in findOccurrencesInStructure:", error);
         vscode.window.showErrorMessage(`Error finding occurrences: ${error}`);
@@ -2254,5 +2037,8 @@ function clearSearch(rangeNavigatorProvider: RangeNavigatorProvider, editor?: vs
 export function deactivate() {
     if (highlightDecorationType) {
         highlightDecorationType.dispose();
+    }
+    if (selectionHighlightDecorationType) {
+        selectionHighlightDecorationType.dispose();
     }
 }

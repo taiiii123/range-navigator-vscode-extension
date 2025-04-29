@@ -1,6 +1,7 @@
 {
     "language": "en",
     "{0} ({1})": "{0} ({1})",
+    "Search Results ({0})": "Search Results ({0})",
     "📍 Other Occurrences ({0})": "📍 Other Occurrences ({0})",
     "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?": "Range Navigator: Settings have been changed. A window reload is required to apply the changes. Do you want to reload now?",
     "Yes": "Yes",
@@ -13,7 +14,7 @@
     "No active editor found.": "No active editor found.",
     "Line {0}: ": "Line {0}: ",
     "The search text {0} is not found in the current line.": "The search text {0} is not found in the current line.",
-    "The specified line number ({0}) is outside the document range.": "The specified line number ({0}) is outside the document range.",
+    "The specified line number {0} is outside the document range.": "The specified line number {0} is outside the document range.",
     "Error navigating to history line.": "Error navigating to history line.",
     "Search history has been cleared.": "Search history has been cleared.",
     "No history available.": "No history available.",
