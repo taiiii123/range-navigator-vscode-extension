@@ -2,6 +2,7 @@
     "extension.rangeNavigator.sidebar.tab.title": "テキストの出現箇所",
     "extension.rangeNavigator.highlight.backgroundColor.description": "サイドバーの検索結果をクリックした後に選択された行をハイライトするための背景色を指定します。",
     "extension.rangeNavigator.highlight.borderColor.description": "サイドバーの検索結果をクリックした後に選択された行をハイライトするための枠線の色を指定します。",
+    "extension.rangeNavigator.highlight.scrollbarColor.description": "スクロールバーのハイライト色を指定します。",
     "extension.rangeNavigator.enableNavigationOnClick": "サイドバーのクラス、関数、メソッド名をクリックしたときに定義位置に移動するかどうか",
     "extension.rangeNavigator.history.maxSize.description": "保存する検索履歴の最大数",
     "extension.rangeNavigator.findOccurrences": "出現箇所を検索",
@@ -10,5 +11,7 @@
     "extension.rangeNavigator.clearSearch": "検索をクリア",
     "extension.rangeNavigator.copyMessage": "メッセージをコピー",
     "extension.rangeNavigator.clearHistory": "検索履歴をクリア",
-    "extension.rangeNavigator.showSearchHistory": "検索履歴を表示"
+    "extension.rangeNavigator.showSearchHistory": "検索履歴を表示",
+    "extension.rangeNavigator.clearHighlightsOnly": "ハイライトを削除",
+    "extension.rangeNavigator.search": "検索"
 }

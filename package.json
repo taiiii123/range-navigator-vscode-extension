@@ -47,7 +47,7 @@
         "rangeNavigator.highlight.scrollbarColor": {
             "type": "string",
             "default": "rgba(255, 165, 0, 0.7)",
-            "description": "スクロールバーのハイライト色"
+            "description": "%extension.rangeNavigator.highlight.scrollbarColor.description%"
         },
         "rangeNavigator.enableNavigationOnClick": {
           "type": "boolean",
@@ -58,8 +58,13 @@
             "type": "number",
             "default": 10,
             "minimum": 1,
-            "maximum": 50,
+            "maximum": 30,
             "description": "%extension.rangeNavigator.history.maxSize.description%"
+        },
+        "rangeNavigator.autoShowSidebarOnSearch": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically show sidebar and search when text is selected"
         }
       }
     },
@@ -101,12 +106,12 @@
       },
       {
         "command": "range-navigator.findOccurrences",
-        "title": "テキスト検索",
+        "title": "%extension.rangeNavigator.search%",
         "category": "Range Navigator"
       },
       {
         "command": "range-navigator.clearHighlightsOnly",
-        "title": "ハイライトを削除",
+        "title": "%extension.rangeNavigator.clearHighlightsOnly%",
         "category": "Range Navigator",
         "icon": "$(clear-all)"
       }

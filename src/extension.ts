@@ -556,9 +556,6 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
     // ファイル拡張子を取得して言語を特定
     const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || '';
 
-    // 言語に応じた予約語セットを取得
-    // const languageKeywords = getReservedKeywordsForLanguage(fileExtension);
-
     // 様々な言語のクラス定義に対応するパターン
     const classPattern = /\b(?:class|struct|interface|trait|enum|record)\s+(\w+)(?:\s+(?:extends|implements|:|<|inherits|with)\s+[\w\s,<>]+)?/g;
 
@@ -576,11 +573,6 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
 
         // クラスの終了位置を特定（言語によって異なる可能性がある）
         let classEndIndex;
-
-        // 予約語の場合はスキップ
-        // if (languageKeywords.includes(className)) {
-        //     continue;
-        // }
 
         // 括弧ベースの言語（Java, C#, JavaScript など）
         classEndIndex = findMatchingBrace(text, document.offsetAt(startPos));
@@ -611,7 +603,7 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
 
             // メソッド名がconstructorでない場合のみ処理（コンストラクタは特別扱い）
             // 各言語固有のコンストラクタ名をチェック
-            const constructorNames = ['constructor', '__init__', '__construct', 'New', 'init'];
+            const constructorNames = ['constructor', '__construct', 'New', 'init'];
             if (!constructorNames.includes(methodName)) {
                 // クラス内でのメソッドの位置を計算
                 const methodStartOffset = classBodyOffset + methodMatch.index;
@@ -641,11 +633,6 @@ async function parseCodeStructure(document: vscode.TextDocument): Promise<CodeSt
     while ((match = functionPattern.exec(text)) !== null) {
         const functionName = match[1];
         const startPos = document.positionAt(match.index);
-
-        // 予約語の場合はスキップ
-        // if (languageKeywords.includes(functionName)) {
-        //     continue;
-        // }
 
         // 関数がクラス内にあるかチェック
         let isInsideClass = false;
@@ -897,8 +884,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 拡張機能のコンテキストから検索履歴を読み込む
     const savedHistory = context.globalState.get('searchHistory', []) as any[];
-    console.log("Saving search history:", savedHistory);
-
 
     try {
         // 型が配列の場合のみ処理
@@ -942,7 +927,10 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidChangeConfiguration(async (e) => {
 			if (e.affectsConfiguration('rangeNavigator.highlight.backgroundColor')
 				|| e.affectsConfiguration('rangeNavigator.highlight.borderColor')
+				|| e.affectsConfiguration('rangeNavigator.highlight.scrollbarColor')
 				|| e.affectsConfiguration('rangeNavigator.enableNavigationOnClick')
+				|| e.affectsConfiguration('rangeNavigator.history.maxSize')
+				|| e.affectsConfiguration('rangeNavigator.autoShowSidebarOnSearch')
 		) {
 
 				const answer = await vscode.window.showInformationMessage(
@@ -1189,6 +1177,7 @@ export function activate(context: vscode.ExtensionContext) {
                     const emptyHistoryNode = new SearchHistoryNode();
                     emptyHistoryNode.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
                     rangeNavigatorProvider.refresh([emptyHistoryNode]);
+                    showSearchHistoryOnly(rangeNavigatorProvider);
                 } else {
                     // 通常モードの場合はウェルカムメッセージを表示
                     rangeNavigatorProvider.showWelcomeMessage();
@@ -1202,7 +1191,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// ツリービューを折りたたむコマンド
 	context.subscriptions.push(
 		vscode.commands.registerCommand("range-navigator.collapseAll", () => {
-			console.log("Range Navigator: Collapse All");
 			vscode.commands.executeCommand('workbench.actions.treeView.rangeNavigatorView.collapseAll');
 		})
 	);
@@ -1325,9 +1313,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 選択テキスト変更イベントハンドラ
     const handleSelectionChange = async (editor: vscode.TextEditor | undefined) => {
-        if (!editor || !treeView.visible) {
+        if (!editor) {
             return;
-        };
+        }
+
+        // 設定から自動サイドバー表示の有効/無効を取得
+        const config = vscode.workspace.getConfiguration('rangeNavigator');
+        const autoShowSidebarOnSearch = config.get('autoShowSidebarOnSearch', false);
 
         const selection = editor.selection;
 
@@ -1343,9 +1335,19 @@ export function activate(context: vscode.ExtensionContext) {
                 console.log(`Selected text: "${selectedText}"`);
                 lastSearchedText = selectedText;  // 最後に検索したテキストを保存
 
-                // findOccurrencesInStructure内でハイライトを処理するため、
-                // ここではハイライト処理を行わない
-                await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
+                // 自動サイドバー表示設定が有効な場合
+                if (autoShowSidebarOnSearch) {
+                    // サイドバーが表示されていない場合は表示する
+                    if (!treeView.visible) {
+                        await vscode.commands.executeCommand('rangeNavigatorView.focus');
+                    }
+
+                    // 選択されたテキストを検索
+                    await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
+                } else if (treeView.visible) {
+                    // 従来の動作：サイドバーが表示されている場合のみ検索を実行
+                    await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
+                }
             }
         } else {
             // カーソル位置の変更だけの場合（範囲選択なし）
@@ -1403,21 +1405,12 @@ export function activate(context: vscode.ExtensionContext) {
     // エディタ変更イベント
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((editor) => {
-            if (selectedOccurrence) {
-                selectedOccurrence.isSelected = false;
-                rangeNavigatorProvider.refreshNode(selectedOccurrence);
-                selectedOccurrence = null;
-            }
+            // 検索とハイライトをクリア
+            clearSearch(rangeNavigatorProvider, editor);
+
+            // サイドバーが表示されている場合、ウェルカムメッセージを表示
             if (treeView.visible) {
-                if (editor && lastSearchedText) {
-                    // 新しいエディタが開かれたとき、最後の検索テキストを使用
-                    findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
-                } else if (editor) {
-                    handleSelectionChange(editor);
-                } else {
-                    // エディタが開かれていない場合はウェルカムメッセージを表示
-                    rangeNavigatorProvider.showWelcomeMessage();
-                }
+                rangeNavigatorProvider.showWelcomeMessage();
             }
         })
     );
@@ -1827,7 +1820,6 @@ function clearHighlights(editor: vscode.TextEditor) {
 function highlightSelectedLine(editor: vscode.TextEditor, range: vscode.Range) {
     clearHighlights(editor);
     editor.setDecorations(highlightDecorationType, [range]);
-    console.log(`Highlighting line ${range.start.line + 1}`);
 
     // 現在のハイライト範囲とその行の内容を保存
     currentHighlightRange = range;
