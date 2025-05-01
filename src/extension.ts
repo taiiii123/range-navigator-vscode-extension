@@ -859,7 +859,7 @@ export function activate(context: vscode.ExtensionContext) {
         borderColor: borderColor,
         isWholeLine: true,
         overviewRulerColor: scrollbarColor,
-        overviewRulerLane: vscode.OverviewRulerLane.Center
+        overviewRulerLane: vscode.OverviewRulerLane.Full
     });
 
     // 範囲選択用のデコレーションタイプを追加
@@ -869,7 +869,7 @@ export function activate(context: vscode.ExtensionContext) {
         borderColor: borderColor,
         isWholeLine: false, // 選択範囲のみをハイライト
         overviewRulerColor: scrollbarColor,
-        overviewRulerLane: vscode.OverviewRulerLane.Right
+        overviewRulerLane: vscode.OverviewRulerLane.Full
     });
 
     // 拡張機能のコンテキストから検索履歴を読み込む

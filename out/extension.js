@@ -724,7 +724,7 @@ function activate(context) {
         borderColor: borderColor,
         isWholeLine: true,
         overviewRulerColor: scrollbarColor,
-        overviewRulerLane: vscode_1.default.OverviewRulerLane.Center
+        overviewRulerLane: vscode_1.default.OverviewRulerLane.Full
     });
     // 範囲選択用のデコレーションタイプを追加
     selectionHighlightDecorationType = vscode_1.default.window.createTextEditorDecorationType({
@@ -733,7 +733,7 @@ function activate(context) {
         borderColor: borderColor,
         isWholeLine: false, // 選択範囲のみをハイライト
         overviewRulerColor: scrollbarColor,
-        overviewRulerLane: vscode_1.default.OverviewRulerLane.Right
+        overviewRulerLane: vscode_1.default.OverviewRulerLane.Full
     });
     // 拡張機能のコンテキストから検索履歴を読み込む
     const savedHistory = context.globalState.get('searchHistory', []);
