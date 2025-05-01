@@ -1,3 +1,10 @@
+<div align="right" style="font-size: 20px;">
+
+**English** | [日本語](./README.ja.md)
+
+</div>
+
+
 # range-navigator README
 
 This is the README for your extension "range-navigator". After writing up a brief description, we recommend including the following sections.

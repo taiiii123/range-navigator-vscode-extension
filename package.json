@@ -11,6 +11,7 @@
   ],
   "activationEvents": ["*"],
   "main": "./out/extension.js",
+  "icon": "resources/icon.png",
   "l10n": "./l10n",
   "contributes": {
     "viewsContainers": {
@@ -49,11 +50,6 @@
             "default": "rgba(255, 165, 0, 0.7)",
             "description": "%extension.rangeNavigator.highlight.scrollbarColor.description%"
         },
-        "rangeNavigator.enableNavigationOnClick": {
-          "type": "boolean",
-          "default": false,
-          "description": "%extension.rangeNavigator.enableNavigationOnClick%"
-        },
         "rangeNavigator.history.maxSize": {
             "type": "number",
             "default": 10,
@@ -64,7 +60,7 @@
         "rangeNavigator.autoShowSidebarOnSearch": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically show sidebar and search when text is selected"
+          "description": "%extension.rangeNavigator.autoShowSidebarOnSearch.description%"
         }
       }
     },
