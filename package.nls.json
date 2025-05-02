@@ -11,7 +11,9 @@
     "extension.rangeNavigator.clearSearch": "Clear Search",
     "extension.rangeNavigator.copyMessage": "Copy Message",
     "extension.rangeNavigator.clearHistory": "Clear search history",
-    "extension.rangeNavigator.showSearchHistory": "Display search history",
+    "extension.rangeNavigator.toggleSearchMode": "Toggle Search Mode (History/Normal)",
     "extension.rangeNavigator.clearHighlightsOnly": "Clear highlight",
-    "extension.rangeNavigator.search": "Search"
+    "extension.rangeNavigator.search": "Search",
+    "extension.rangeNavigator.toggleHistoryMode": "Switch to History Mode",
+    "extension.rangeNavigator.switchToNormalMode": "Switch to Normal Mode"
 }

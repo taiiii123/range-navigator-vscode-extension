@@ -82,7 +82,7 @@ Range Navigatorでは以下のコマンドが利用できます：
 | `range-navigator.clearHighlightsOnly` | ハイライト表示のみをクリア                                   |
 | `range-navigator.expandAll`           | すべての検索結果を展開                                       |
 | `range-navigator.collapseAll`         | すべての検索結果を折りたたむ                                 |
-| `range-navigator.showSearchHistory`   | 検索履歴を表示                                               |
+| `range-navigator.toggleSearchMode`   | 検索モード切替（履歴/通常）                                               |
 | `range-navigator.clearHistory`        | 保存された検索履歴をクリア                                   |
 |                                       |                                                              |
 
@@ -93,6 +93,8 @@ Range Navigatorでは以下のコマンドが利用できます：
 エディタ内で右クリックすると、コンテキストメニューに「Range Navigator」が表示されます
 - 出現箇所を検索 - 選択テキストの出現箇所を検索
 - ハイライトのみをクリア - ハイライト表示のみをクリア
+- 履歴モードに切り替え - 検索履歴モードに切り替え（通常モード時に表示）
+- 通常検索モードに戻る - 通常検索モードに戻る（履歴モード時に表示）
 
 <a id="設定"></a>
 

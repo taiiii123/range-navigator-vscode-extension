@@ -95,8 +95,8 @@
         "title": "%extension.rangeNavigator.clearHistory%"
       },
       {
-        "command": "range-navigator.showSearchHistory",
-        "title": "%extension.rangeNavigator.showSearchHistory%",
+        "command": "range-navigator.toggleSearchMode",
+        "title": "%extension.rangeNavigator.toggleSearchMode%",
         "category": "Range Navigator",
         "icon": "$(history)"
       },
@@ -110,6 +110,18 @@
         "title": "%extension.rangeNavigator.clearHighlightsOnly%",
         "category": "Range Navigator",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "range-navigator.toggleHistoryMode",
+        "title": "%extension.rangeNavigator.toggleHistoryMode%",
+        "category": "Range Navigator",
+        "icon": "$(history)"
+      },
+      {
+        "command": "range-navigator.switchToNormalMode",
+        "title": "%extension.rangeNavigator.switchToNormalMode%",
+        "category": "Range Navigator",
+        "icon": "$(search)"
       }
     ],
     "menus": {
@@ -127,6 +139,16 @@
         {
           "command": "range-navigator.clearHighlightsOnly",
           "group": "1_search"
+        },
+        {
+          "command": "range-navigator.toggleHistoryMode",
+          "when": "!rangeNavigator.historyMode",
+          "group": "1_mode"
+        },
+        {
+          "command": "range-navigator.switchToNormalMode",
+          "when": "rangeNavigator.historyMode",
+          "group": "1_mode"
         }
       ],
       "view/title": [

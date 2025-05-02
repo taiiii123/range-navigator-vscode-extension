@@ -1085,9 +1085,9 @@ export function activate(context: vscode.ExtensionContext) {
         )
     );
 
-    // 検索履歴を表示するコマンド
+    // 検索モード切替（履歴/通常）コマンド
     context.subscriptions.push(
-        vscode.commands.registerCommand('range-navigator.showSearchHistory', () => {
+        vscode.commands.registerCommand('range-navigator.toggleSearchMode', () => {
             // 検索履歴モードでない場合（通常モードの場合）は、履歴を表示する
             if (!isSearchHistoryMode) {
                 // 現在の選択状態を保存（モード切替前に保存することが重要）
@@ -1514,6 +1514,60 @@ export function activate(context: vscode.ExtensionContext) {
         overviewRulerColor: scrollbarColor,
         overviewRulerLane: vscode.OverviewRulerLane.Center
     });
+
+    // 履歴モードに切り替えるコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('range-navigator.toggleHistoryMode', () => {
+            // 履歴モードがオフの場合にオンにする
+            if (!isSearchHistoryMode) {
+                // 現在の選択状態を保存
+                const currentSelection = selectedOccurrence;
+
+                // 履歴モードに切り替え
+                isSearchHistoryMode = true;
+                vscode.commands.executeCommand('setContext', 'rangeNavigator.historyMode', true);
+
+                // 選択状態を一時的に解除
+                if (selectedOccurrence) {
+                    selectedOccurrence.isSelected = false;
+                    rangeNavigatorProvider.refreshNode(selectedOccurrence);
+                }
+
+                // 検索履歴のみを表示
+                showSearchHistoryOnly(rangeNavigatorProvider);
+
+                // サイドバーを表示（サイドバーが表示されていない場合）
+                vscode.commands.executeCommand('rangeNavigatorView.focus');
+            }
+        })
+    );
+
+    // 通常モードに戻るコマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('range-navigator.switchToNormalMode', () => {
+            // 履歴モードがオンの場合にオフにする
+            if (isSearchHistoryMode) {
+                // 通常モードに切り替え
+                isSearchHistoryMode = false;
+                vscode.commands.executeCommand('setContext', 'rangeNavigator.historyMode', false);
+
+                // 通常モードに戻す
+                if (lastSearchedText) {
+                    const editor = vscode.window.activeTextEditor;
+                    if (editor) {
+                        // 最後の検索テキストを使用して検索結果を表示
+                        findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
+                    }
+                } else {
+                    // 検索テキストがない場合はウェルカムメッセージを表示
+                    rangeNavigatorProvider.showWelcomeMessage();
+                }
+
+                // サイドバーを表示（サイドバーが表示されていない場合）
+                vscode.commands.executeCommand('rangeNavigatorView.focus');
+            }
+        })
+    );
 }
 
 // エディタの選択位置からサイドバーの対応項目を選択状態にする関数

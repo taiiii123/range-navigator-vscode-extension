@@ -11,7 +11,9 @@
     "extension.rangeNavigator.clearSearch": "検索をクリア",
     "extension.rangeNavigator.copyMessage": "メッセージをコピー",
     "extension.rangeNavigator.clearHistory": "検索履歴をクリア",
-    "extension.rangeNavigator.showSearchHistory": "検索履歴を表示",
+    "extension.rangeNavigator.toggleSearchMode": "検索モード切替（履歴/通常）",
     "extension.rangeNavigator.clearHighlightsOnly": "ハイライトを削除",
-    "extension.rangeNavigator.search": "検索"
+    "extension.rangeNavigator.search": "検索",
+    "extension.rangeNavigator.toggleHistoryMode": "履歴モードに切り替え",
+    "extension.rangeNavigator.switchToNormalMode": "通常検索モードに戻る"
 }
