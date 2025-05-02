@@ -3,6 +3,7 @@
   "displayName": "Range Navigator",
   "description": "Find all occurrences of selected text and display them in sidebar",
   "version": "0.0.1",
+	"publisher": "Y3191",
   "engines": {
     "vscode": "^1.54.0"
   },
