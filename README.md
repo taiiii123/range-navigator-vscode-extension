@@ -4,20 +4,18 @@
 
 </div>
 
-
 <p align="center"><img src="./resources/title.png" height=120 style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
-
 <p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#commands">Commands</a> •
-  <a href="#editor-context-menu">Editor Context Menu</a> •
-  <a href="#settings">Settings</a> •
-  <a href="#supported-languages">Supported Languages</a> •
-  <a href="#changelog">Changelog</a> •
-  <a href="#license">License</a>
+  <a href="#features"><strong>Features</strong></a> &nbsp;|&nbsp;
+  <a href="#installation"><strong>Installation</strong></a> &nbsp;|&nbsp;
+  <a href="#usage"><strong>Usage</strong></a> &nbsp;|&nbsp;
+  <a href="#commands"><strong>Commands</strong></a> &nbsp;|&nbsp;
+  <a href="#editor-context-menu"><strong>Editor Context Menu</strong></a> &nbsp;|&nbsp;
+  <a href="#settings"><strong>Settings</strong></a> &nbsp;|&nbsp;
+  <a href="#supported-languages"><strong>Supported Languages</strong></a> &nbsp;|&nbsp;
+  <a href="#changelog"><strong>Changelog</strong></a> &nbsp;|&nbsp;
+  <a href="#license"><strong>License</strong></a>
 </p>
 
 # **Range Navigator** - VS Code Extension 🔍

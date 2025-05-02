@@ -4,20 +4,18 @@
 
 </div>
 
-
 <p align="center"><img src="./resources/title.png" height=120 style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
-
 <p align="center">
-  <a href="#機能概要">機能概要 </a> •
-  <a href="#インストール">インストール</a> •
-  <a href="#使用方法">使用方法</a> •
-  <a href="#コマンド">コマンド</a> •
-  <a href="#エディタのコンテキストメニュー">エディタのコンテキストメニュー</a> •
-  <a href="#設定">設定</a> •
-  <a href="#サポートされている言語">サポートされている言語</a> •
-  <a href="#変更履歴">変更履歴</a> •
-  <a href="#ライセンス">ライセンス</a>
+  <a href="#機能概要"><strong>機能概要</strong></a> &nbsp;|&nbsp;
+  <a href="#インストール"><strong>インストール</strong></a> &nbsp;|&nbsp;
+  <a href="#使用方法"><strong>使用方法</strong></a> &nbsp;|&nbsp;
+  <a href="#コマンド"><strong>コマンド</strong></a> &nbsp;|&nbsp;
+  <a href="#エディタのコンテキストメニュー"><strong>コンテキストメニュー</strong></a> &nbsp;|&nbsp;
+  <a href="#設定"><strong>設定</strong></a> &nbsp;|&nbsp;
+  <a href="#サポートされている言語"><strong>対応言語</strong></a> &nbsp;|&nbsp;
+  <a href="#変更履歴"><strong>変更履歴</strong></a> &nbsp;|&nbsp;
+  <a href="#ライセンス"><strong>ライセンス</strong></a>
 </p>
 
 # **Range Navigator** - VS Code拡張機能 🔍
