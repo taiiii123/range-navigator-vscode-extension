@@ -2,3 +2,5 @@ node_modules/*
 todo.txt
 sample/*
 src/extension_.ts
+out/*
+range-navigator-*.vsix
