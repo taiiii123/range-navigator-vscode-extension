@@ -27,7 +27,7 @@ When you select an item from the list, it jumps to that location and highlights 
 
 ### 🎬 Example
 
-<p align="center"><img src="https://github.com/user-attachments/assets/67fd8efb-fec6-4367-b70f-248b3dfd34b4" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/1f0f0867-7d31-47e3-80bf-c6f74cf5f215" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
 <a id="features"></a>
 
@@ -77,7 +77,7 @@ ext install range-navigator
 > ℹ️ To return to the normal search mode, click the history icon (🕒) again.
 
 
-<p align="center"><img src="https://github.com/user-attachments/assets/055c8ce4-6efe-481a-b52a-8f812f2aa813" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/bea2e569-2edd-4367-b980-8b3ea51351da" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
 <a id="commands"></a>
 

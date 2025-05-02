@@ -27,7 +27,7 @@
 
 ### 🎬動作例
 
-<p align="center"><img src="https://github.com/user-attachments/assets/5fa11be0-809d-45cf-9c49-8e46c6f2a3b1" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/2a0269e4-bee4-40d8-90aa-e91eb819b1fa" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
 <a id="機能概要"></a>
 
@@ -77,7 +77,7 @@ ext install range-navigator
 > ℹ️通常検索モードに戻るには、再度履歴アイコン（🕒）をクリックします。
 
 
-<p align="center"><img src="https://github.com/user-attachments/assets/211e3908-55ac-4c45-9188-e1952b343abd" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/c130448b-c25f-4f5c-97c9-d6f0a0c67ac9" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
 <a id="コマンド"></a>
 
