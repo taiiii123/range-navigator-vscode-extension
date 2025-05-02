@@ -92,7 +92,6 @@ Range Navigatorでは以下のコマンドが利用できます：
 | `range-navigator.collapseAll`         | すべての検索結果を折りたたむ                                 |
 | `range-navigator.toggleSearchMode`   | 検索モード切替（履歴/通常）                                               |
 | `range-navigator.clearHistory`        | 保存された検索履歴をクリア                                   |
-|                                       |                                                              |
 
 <a id="エディタのコンテキストメニュー"></a>
 

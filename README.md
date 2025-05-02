@@ -92,7 +92,6 @@ The following commands are available in Range Navigator:
 | `range-navigator.collapseAll`        | Collapse all search results                                 |
 | `range-navigator.toggleSearchMode`   | Toggle Search Mode (History/Normal)                         |
 | `range-navigator.clearHistory`       | Clear saved search history                                  |
-|                                      |                                                             |
 
 <a id="editor-context-menu"></a>
 
