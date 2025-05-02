@@ -452,8 +452,6 @@ class RangeNavigatorProvider {
             this.rootNodes = [welcomeNode, usageNode];
         }
         this._onDidChangeTreeData.fire();
-        // ウェルカムメッセージを表示済みとしてマーク
-        hasShownWelcomeMessage = true;
     }
     // 検索履歴ノードを更新する
     updateSearchHistoryNode() {
@@ -785,16 +783,6 @@ function activate(context) {
             }
         }
     }));
-    // ハイライト用のデコレーションタイプを作成
-    highlightDecorationType = vscode_1.default.window.createTextEditorDecorationType({
-        backgroundColor: backgroundColor,
-        border: '1px solid',
-        borderColor: borderColor,
-        isWholeLine: true,
-        // スクロールバーに表示するための設定を追加
-        overviewRulerColor: scrollbarColor,
-        overviewRulerLane: vscode_1.default.OverviewRulerLane.Center
-    });
     const rangeNavigatorProvider = new RangeNavigatorProvider(context);
     const treeView = vscode_1.default.window.createTreeView("rangeNavigatorView", {
         treeDataProvider: rangeNavigatorProvider,
@@ -1034,8 +1022,6 @@ function activate(context) {
         });
     });
     // 選択テキスト変更イベントハンドラ
-    let previousSelection;
-    // 選択テキスト変更イベントハンドラ
     const handleSelectionChange = async (editor) => {
         if (!editor) {
             return;
@@ -1053,14 +1039,18 @@ function activate(context) {
             const selectedText = editor.document.getText(selection);
             if (selectedText && selectedText.length > 0) {
                 console.log(`Selected text: "${selectedText}"`);
-                lastSearchedText = selectedText; // 最後に検索したテキストを保存
+                // 範囲選択の場合は、lastSearchedTextを設定する
+                // これにより、サイドバーが開かれた時に自動的に検索が行われる
+                lastSearchedText = selectedText;
                 // 自動サイドバー表示設定が有効な場合
                 if (autoShowSidebarOnSearch) {
                     // サイドバーが表示されていない場合は表示する
                     if (!treeView.visible) {
                         await vscode_1.default.commands.executeCommand('rangeNavigatorView.focus');
+                        // サイドバーを開く動作だけを行い、検索・ハイライトはこの時点では実行しない
+                        return;
                     }
-                    // 選択されたテキストを検索
+                    // サイドバーが既に表示されている場合は検索を実行
                     await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
                 }
                 else if (treeView.visible) {
@@ -1071,8 +1061,10 @@ function activate(context) {
         }
         else {
             // カーソル位置の変更だけの場合（範囲選択なし）
+            // この場合はlastSearchedTextをクリアしない（既存の検索結果を保持）
             // 選択範囲ハイライトはクリアするが、行ハイライトは保持
             editor.setDecorations(selectionHighlightDecorationType, []);
+            // 既存のコードをそのまま維持
             if (lastSearchedText) {
                 // 何もしない - 行ハイライトと検索結果はそのまま表示
             }
@@ -1082,8 +1074,6 @@ function activate(context) {
                 rangeNavigatorProvider.showWelcomeMessage();
             }
         }
-        // 現在の選択状態を保存
-        previousSelection = selection;
     };
     // 検索をクリアするコマンド
     context.subscriptions.push(vscode_1.default.commands.registerCommand('range-navigator.clearSearch', () => {
@@ -1097,13 +1087,30 @@ function activate(context) {
     // サイドバー表示状態変更イベント
     context.subscriptions.push(treeView.onDidChangeVisibility((event) => {
         if (event.visible) {
-            // サイドバーが表示されたとき、アクティブエディタに最後の検索テキストがあればそれを使用
+            // サイドバーが表示されたとき
             const editor = vscode_1.default.window.activeTextEditor;
-            if (editor && lastSearchedText) {
-                findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
-            }
-            else if (editor) {
-                handleSelectionChange(editor);
+            if (editor) {
+                // 重要な変更: lastSearchedTextがある場合のみ検索実行
+                // 範囲選択状態の場合はlastSearchedTextが設定されているので検索される
+                // 通常の選択状態の場合はlastSearchedTextが設定されていないので検索されない
+                if (lastSearchedText && lastSearchedText.length > 0) {
+                    findOccurrencesInStructure(editor, lastSearchedText, rangeNavigatorProvider);
+                }
+                else {
+                    // 範囲選択されているかチェック
+                    const selection = editor.selection;
+                    if (!selection.isEmpty) {
+                        // 範囲選択されている場合は検索を実行
+                        const selectedText = editor.document.getText(selection);
+                        if (selectedText && selectedText.length > 0) {
+                            lastSearchedText = selectedText; // 検索テキストを保存
+                            findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
+                            return;
+                        }
+                    }
+                    // 範囲選択もなく、lastSearchedTextもない場合はウェルカムメッセージを表示
+                    rangeNavigatorProvider.showWelcomeMessage();
+                }
             }
             else {
                 // エディタが開かれていない場合はウェルカムメッセージを表示
@@ -1133,6 +1140,7 @@ function activate(context) {
         if (!selection.isEmpty) {
             const selectedText = editor.document.getText(selection);
             if (selectedText && selectedText.length > 0) {
+                // 明示的に検索テキストを設定
                 lastSearchedText = selectedText;
                 await findOccurrencesInStructure(editor, selectedText, rangeNavigatorProvider);
                 // サイドバーを開く
@@ -1146,6 +1154,7 @@ function activate(context) {
                 prompt: vscode_1.l10n.t('Search for text in the current document')
             });
             if (searchText && searchText.length > 0) {
+                // 明示的に検索テキストを設定
                 lastSearchedText = searchText;
                 await findOccurrencesInStructure(editor, searchText, rangeNavigatorProvider);
                 // サイドバーを開く
@@ -1382,23 +1391,6 @@ function updateOccurrenceSelection(provider, lineNumber, startIndex, searchText)
         occurrence.isSelected = true;
         provider.refreshNode(occurrence);
     }
-}
-// 履歴ノードを検索するヘルパー関数
-function findHistoryNodeByItem(provider, item) {
-    // 履歴ノードを取得
-    if (!provider.searchHistoryNode) {
-        return null;
-    }
-    // 一致する履歴項目を探す
-    for (const node of provider.searchHistoryNode.children) {
-        if (node instanceof SearchHistoryItemNode &&
-            node.historyItem.searchText === item.searchText &&
-            node.historyItem.occurrenceInfo.lineNumber === item.occurrenceInfo.lineNumber &&
-            node.historyItem.occurrenceInfo.documentUri.toString() === item.occurrenceInfo.documentUri.toString()) {
-            return node;
-        }
-    }
-    return null;
 }
 // 行履歴を追加する関数
 function addToLineHistory(searchText, occurrenceInfo, provider) {
