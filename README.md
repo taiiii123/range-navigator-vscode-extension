@@ -5,74 +5,170 @@
 </div>
 
 
-# range-navigator README
+<p align="center"><img src="./resources/title.png" height=120 style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
-This is the README for your extension "range-navigator". After writing up a brief description, we recommend including the following sections.
 
-## Features
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#commands">Commands</a> •
+  <a href="#editor-context-menu">Editor Context Menu</a> •
+  <a href="#settings">Settings</a> •
+  <a href="#supported-languages">Supported Languages</a> •
+  <a href="#changelog">Changelog</a> •
+  <a href="#license">License</a>
+</p>
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+# **Range Navigator** - VS Code Extension 🔍
 
-For example if there is an image subfolder under your extension project workspace:
+**Range Navigator** is a VS Code extension that searches for all occurrences of text selected in the editor and displays them in the sidebar.
+When you select an item from the list, it jumps to that location and highlights it.
 
-\!\[feature X\]\(images/feature-x.png\)
+<a id="example"></a>
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### 🎬 Example
 
-## Requirements
+<p align="center"><img src="https://github.com/user-attachments/assets/67fd8efb-fec6-4367-b70f-248b3dfd34b4" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+<a id="features"></a>
 
-## Extension Settings
+# Features ✨
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### Basic Features
 
-For example:
+- 🔍 When you select text in the editor, it searches for and displays all occurrences of the same text
+- 🖌️ Click to jump to the occurrence and highlight it
+- 🕒 Saves search history for easy access to past search results
+- 📂 Expandable and collapsible search results
+- 📝 Displays context of occurrences with line numbers
+- 🎨 Customizable highlight colors and styles
 
-This extension contributes the following settings:
+<a id="installation"></a>
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+# Installation 📥
+1. Open the Extensions sidebar in VS Code (the puzzle piece icon on the left edge)
+2. Type "Range Navigator" in the search box
+3. Click the "Install" button
 
-## Known Issues
+Or, run the following command in Quick Open (Ctrl+P or Cmd+P):
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+```
+ext install range-navigator
+```
 
-## Release Notes
+<a id="usage"></a>
 
-Users appreciate release notes as you update your extension.
+# Usage 📖
 
-### 1.0.0
+### Basic Usage
+1. Select Text: Select text in the editor
+2. Check Results: Click on the Range Navigator icon in the activity bar to open the sidebar
+3. View in Sidebar: The sidebar displays occurrences of the selected text
+4. Navigate: Click on an item in the list to jump to that code location
+5. Clear Search: Click the "Clear Search" button at the top of the sidebar to clear the current search results and line highlights
 
-Initial release of ...
+<a href="#example">Example: See the example above</a>
 
-### 1.0.1
+### Using the History Feature
+1. Click on the history icon (🕒) in the Range Navigator sidebar
+2. Your past search history will be displayed
+3. Click on a history item to jump to that location
+4. Clear History: You can clear all saved search history by clicking the "Clear search history" button which appears when you hover over the history heading
 
-Fixed issue #.
+> ℹ️ To return to the normal search mode, click the history icon (🕒) again.
 
-### 1.1.0
 
-Added features X, Y, and Z.
+<p align="center"><img src="https://github.com/user-attachments/assets/055c8ce4-6efe-481a-b52a-8f812f2aa813" style="filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));"/></p>
 
----
+<a id="commands"></a>
 
-## Following extension guidelines
+# Commands ⌨️
+The following commands are available in Range Navigator:
+| Command                              | Description                                                 |
+| :----------------------------------- | :---------------------------------------------------------- |
+| `range-navigator.findOccurrences`    | Find occurrences (displays input prompt if no text selected) |
+| `range-navigator.clearSearch`        | Clear current search results                                |
+| `range-navigator.clearHighlightsOnly`| Clear highlights only                                       |
+| `range-navigator.expandAll`          | Expand all search results                                   |
+| `range-navigator.collapseAll`        | Collapse all search results                                 |
+| `range-navigator.toggleSearchMode`   | Toggle Search Mode (History/Normal)                         |
+| `range-navigator.clearHistory`       | Clear saved search history                                  |
+|                                      |                                                             |
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+<a id="editor-context-menu"></a>
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+# Editor Context Menu 📋
 
-## Working with Markdown
+Right-clicking in the editor displays "Range Navigator" in the context menu
+- Find Occurrences - Search for occurrences of selected text
+- Clear highlight - Clear only the highlights
+- Switch to History Mode - Switch to search history mode (displayed in normal mode)
+- Switch to Normal Mode - Return to normal search mode (displayed in history mode)
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+<a id="settings"></a>
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+# Settings ⚙️
 
-## For more information
+### Customizing Settings
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+Settings can be customized using the following methods or from [settings.json](#settingsjson).
 
-**Enjoy!**
+1. Open settings from the VS Code menu: `File > Preferences > Settings`.
+2. Type "Range Navigator" in the search bar.
+3. The following settings will be displayed:
+   - 🎨 Background Color: Sets the background color for the line displayed when you click on a search result. Can be specified in RGBA format with transparency.
+   - 🖋️ Border Color: Sets the border color for the line when you click on a search result. Used to highlight the line more clearly.
+   - 📊 Scrollbar Color: Sets the color of markers displayed on the scrollbar on the right side of the editor. Helps to visually identify the position of search results in long files.
+   - 🔢 Max Size: Specifies the maximum number of search histories to save, between 1 and 30. Setting a larger value is convenient if you perform many searches.
+   - 🔄 Auto Show Sidebar On Search: Sets whether to automatically open the sidebar and display search results when text is selected. Convenient if you frequently use the search feature.
+
+### settings.json
+
+You can change the extension [settings](https://code.visualstudio.com/docs/customization/userandworkspace) in the `settings.json` file:
+
+### Highlight Settings
+- `rangeNavigator.highlight.backgroundColor` - Background color for highlights
+  - Default: `"rgba(255, 165, 0, 0.3)"`
+- `rangeNavigator.highlight.borderColor` - Border color for highlights
+  - Default: `"rgba(255, 140, 0, 0.8)"`
+- `rangeNavigator.highlight.scrollbarColor` - Scrollbar marker color
+  - Default: `"rgba(255, 165, 0, 0.7)"`
+
+### Behavior Settings
+- `rangeNavigator.history.maxSize` - Maximum number of histories to save (1-30)
+  - Default: `10`
+- `rangeNavigator.autoShowSidebarOnSearch` - Automatically show sidebar when text is selected
+  - Default: `false`
+
+#### Example Settings
+
+```json
+{
+  "rangeNavigator.highlight.backgroundColor": "rgba(65, 105, 225, 0.2)",
+  "rangeNavigator.highlight.borderColor": "rgba(65, 105, 225, 0.7)",
+  "rangeNavigator.highlight.scrollbarColor": "rgba(65, 105, 225, 0.7)",
+  "rangeNavigator.autoShowSidebarOnSearch": true,
+  "rangeNavigator.history.maxSize": 30
+}
+```
+
+<a id="supported-languages"></a>
+
+# Supported Languages
+The following languages support structured display based on code structure (classes, functions, etc.):
+
+- JavaScript/TypeScript
+- Java
+
+Basic search functionality can be used with other languages as well.
+
+<a id="changelog"></a>
+
+# Changelog 📝
+All changes can be found in the [CHANGELOG](./CHANGELOG.md).
+
+<a id="license"></a>
+
+# License ⚖️
+[MIT](./LICENSE)

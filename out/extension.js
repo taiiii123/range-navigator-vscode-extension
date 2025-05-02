@@ -42,8 +42,6 @@ let highlightDecorationType;
 let lastSearchedText = '';
 // 選択がサイドバーからのものかを判断するフラグ
 let isNavigatingFromSidebar = false;
-// 初期表示済みフラグ
-let hasShownWelcomeMessage = false;
 // 検索履歴を保持する配列を変更
 let searchHistory = [];
 // 検索履歴表示モードかどうかのフラグ
@@ -119,9 +117,7 @@ class SearchHistoryItemNode extends TreeNode {
         const startPos = Math.max(0, startIndex - contextBefore);
         const textBefore = lineText.substring(startPos, startIndex);
         const highlightedText = searchText;
-        const textAfter = lineText.substring(startIndex + searchText.length, Math.min(lineText.length, startIndex + searchText.length + contextAfter)
-        // Ensure this is part of a valid function call or statement
-        ); // Example: Add this to a valid function or remove if unnecessary
+        const textAfter = lineText.substring(startIndex + searchText.length, Math.min(lineText.length, startIndex + searchText.length + contextAfter));
         // 行番号プレフィックス
         const linePrefix = vscode_1.l10n.t('Line {0}: ', lineNumber);
         // 完全なテキストを構築
@@ -1060,8 +1056,6 @@ function activate(context) {
             }
         }
         else {
-            // カーソル位置の変更だけの場合（範囲選択なし）
-            // この場合はlastSearchedTextをクリアしない（既存の検索結果を保持）
             // 選択範囲ハイライトはクリアするが、行ハイライトは保持
             editor.setDecorations(selectionHighlightDecorationType, []);
             // 既存のコードをそのまま維持

@@ -839,7 +839,6 @@ function organizeOccurrencesByStructure(
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log("Activating Range Navigator extension");
 
     // 設定から色情報を取得
     const config = vscode.workspace.getConfiguration('rangeNavigator');
@@ -1270,7 +1269,6 @@ export function activate(context: vscode.ExtensionContext) {
         if (!selection.isEmpty) {
             const selectedText = editor.document.getText(selection);
             if (selectedText && selectedText.length > 0) {
-                console.log(`Selected text: "${selectedText}"`);
 
                 // 範囲選択の場合は、lastSearchedTextを設定する
                 // これにより、サイドバーが開かれた時に自動的に検索が行われる
@@ -1649,7 +1647,6 @@ function highlightSingleOccurrenceInScrollbar(editor: vscode.TextEditor, occurre
 
     // スクロールバーに新しいハイライトを適用
     editor.setDecorations(scrollbarHighlightDecorationType, [range]);
-    console.log(`Highlighting scrollbar for line ${occurrence.lineNumber + 1}`);
 }
 
 // 検索結果から指定の行・位置に一致するTextOccurrenceを選択状態にするヘルパー関数を追加
@@ -1794,7 +1791,6 @@ async function expandAll(treeView: vscode.TreeView<any>, provider: vscode.TreeDa
 function highlightSelection(editor: vscode.TextEditor, range: vscode.Range) {
     // 既存のハイライトを保持したまま、選択範囲のハイライトを適用
     editor.setDecorations(selectionHighlightDecorationType, [range]);
-    console.log(`Highlighting selection from line ${range.start.line + 1}:${range.start.character} to line ${range.end.line + 1}:${range.end.character}`);
 }
 
 // ハイライトをクリアする関数を拡張
